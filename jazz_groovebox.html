@@ -1125,31 +1125,45 @@
     }
 
     // Enhanced Progression & Chords Logic
-    function getExtensionsForBase(baseMidi, tensionPercent) {
-        // Base intervals: Root, Major 3rd (or min 3rd if m7b5), Perfect 5th (or b5), Major/Minor 7th
+    function getExtensionsForBase(baseMidi, tensionPercent, quality) {
+        // Support dynamic chord qualities with Berklee style Berklee voice theory
         let intervals = [0, 4, 7, 11]; // default Major 7th
-        const baseType = document.getElementById('baseChordType').value;
-        if (baseType === 'm7b5') {
-            intervals = [0, 3, 6, 10];
-        } else if (baseType === '7#11') {
-            intervals = [0, 4, 7, 10];
+
+        if (quality === 'm7') {
+            intervals = [0, 3, 7, 10]; // Minor 7th
+        } else if (quality === '7') {
+            intervals = [0, 4, 7, 10]; // Dominant 7th
+        } else if (quality === 'm7b5') {
+            intervals = [0, 3, 6, 10]; // Half-diminished
+        } else if (quality === 'maj7') {
+            intervals = [0, 4, 7, 11]; // Major 7th
+        } else if (quality === 'maj9') {
+            intervals = [0, 4, 7, 11, 14]; // Major 9th
         }
 
         // Add extensions dynamically according to tension Level
         if (tensionPercent > 15) {
             // Add 9th
-            let ninth = (baseType === 'm7b5') ? 13 : 14;
-            intervals.push(ninth);
+            let ninth = (quality === 'm7b5') ? 13 : 14;
+            if (!intervals.includes(ninth)) {
+                intervals.push(ninth);
+            }
         }
         if (tensionPercent > 45) {
             // Add 11th / #11th
-            let eleventh = (baseType === 'maj7#11' || baseType === '7#11') ? 18 : 17;
-            intervals.push(eleventh);
+            let eleventh = (quality === 'maj7' || quality === '7') ? 18 : 17; // #11 (18) for Major/Dominant, natural 11 (17) for Minor
+            if (!intervals.includes(eleventh)) {
+                intervals.push(eleventh);
+            }
         }
         if (tensionPercent > 75) {
-            // Add complex flat 13 or augmented 9th alterations
-            intervals.push(20); // flat 13 / aug 5
-            intervals.push(15); // flat 9 for dominants
+            // Add alterations for dominant chords, or high extensions for others
+            if (quality === '7') {
+                intervals.push(20); // b13
+                intervals.push(15); // b9
+            } else {
+                intervals.push(21); // high 13th / octave root duplication
+            }
         }
 
         return intervals.map(i => baseMidi + i);
@@ -1286,6 +1300,7 @@
                 let subBar = b % 8; // progression length loops
                 let currentRoot = root;
                 let scaleDegreeName = "I";
+                let quality = "maj7"; // default quality for tonic and major degrees
 
                 // Secondary Dominants injection (e.g., bar before target is forced to V/target)
                 let makeSecondaryDominant = false;
@@ -1302,6 +1317,9 @@
                     let labels = ["I", "vi", "ii", "V", "iii", "vi", "ii", "V"];
                     scaleDegreeName = labels[subBar];
                     targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "m7", "m7", "7", "m7", "m7", "m7", "7"];
+                    quality = qualities[subBar];
                 } else if (progStyle === 'circle_fifths') {
                     // Circle of Fifths: I - IV - vii - iii - vi - ii - V - I
                     let degrees = [0, 5, 11, 4, 9, 2, 7, 0];
@@ -1309,6 +1327,9 @@
                     let labels = ["I", "IV", "viiø", "iii", "vi", "ii", "V", "I"];
                     scaleDegreeName = labels[subBar];
                     targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "m7b5", "m7", "m7", "m7", "7", "maj7"];
+                    quality = qualities[subBar];
                 } else if (progStyle === 'modal_interchange') {
                     // Modal Interchange (Borrowing from minor): I - bVI - bVII - I - iv - bIII - bVI - bVII
                     let degrees = [0, 8, 10, 0, 5, 3, 8, 10];
@@ -1316,6 +1337,9 @@
                     let labels = ["I", "bVI (Aeolian)", "bVII (Mixolydian)", "I", "iv (Minor iv)", "bIII (Relative Major)", "bVI", "bVII"];
                     scaleDegreeName = labels[subBar];
                     targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "7", "maj7", "m7", "maj7", "maj7", "7"];
+                    quality = qualities[subBar];
                 } else if (progStyle === 'coltrane_changes') {
                     // Coltrane Changes (Giant Steps multi-tonic matrix shifting by Major 3rds)
                     // I - bVI - bIV - bII - V - bVI - ii - V
@@ -1324,6 +1348,9 @@
                     let labels = ["I (Tonic C)", "bVI (Tonic Ab)", "bIV (Tonic E)", "bII", "V", "bVI", "ii", "V"];
                     scaleDegreeName = labels[subBar];
                     targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "maj7", "maj7", "7", "maj7", "m7", "7"];
+                    quality = qualities[subBar];
                 } else if (progStyle === 'line_cliche') {
                     // Line Cliché (Chromatic Walkdown in minor/major): I - I(maj7) - I(7) - I(6) - IV - iv - V - I
                     let degrees = [0, 0, 0, 0, 5, 5, 7, 0];
@@ -1331,12 +1358,16 @@
                     let labels = ["I", "I(maj7)", "I(7)", "I(6)", "IV", "iv", "V", "I"];
                     scaleDegreeName = labels[subBar];
                     targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "7", "maj7", "maj7", "m7", "7", "maj7"];
+                    quality = qualities[subBar];
                 }
 
                 // If making secondary dominant, override currentRoot to be perfect 5th of next bar's root target
                 if (makeSecondaryDominant) {
                     currentRoot = (targetRoot + 7) % 12;
                     scaleDegreeName = `V / ${notesArray[targetRoot]}`;
+                    quality = "7";
                 }
 
                 // Generative mutation probability (periodically swaps chord to tritone substitute or relative minor/major)
@@ -1346,11 +1377,17 @@
                     currentRoot = (currentRoot + 6) % 12;
                     scaleDegreeName = `SubV (Tritone Sub)`;
                     mutated = true;
+                    quality = "7";
+                }
+
+                // Incorporate user baseChordType preferences specifically for Tonic/Major qualities
+                if (quality === 'maj7') {
+                    if (baseType === 'maj9') quality = 'maj9';
                 }
 
                 // 4. Voicing / Chord generation
                 let baseMidi = currentRoot + 48;
-                chordNotes = getExtensionsForBase(baseMidi, tensionPercent);
+                chordNotes = getExtensionsForBase(baseMidi, tensionPercent, quality);
 
                 // Build name and descriptor details
                 let labelPrefix = mutated ? "[Mutated] " : "";
@@ -1358,7 +1395,7 @@
                     name = `${labelPrefix}${notesArray[currentRoot]}7 (Secondary Dominant)`;
                     explanation = `Secondary dominant V chord built over ${notesArray[currentRoot]} to pull aggressively toward the upcoming ${notesArray[targetRoot]} chord in the jazz cycle.`;
                 } else {
-                    name = `${labelPrefix}${notesArray[currentRoot]} ${baseType.toUpperCase()} (${scaleDegreeName})`;
+                    name = `${labelPrefix}${notesArray[currentRoot]} ${quality.toUpperCase()} (${scaleDegreeName})`;
                     explanation = `Algorithmically generated ${scaleDegreeName} base chord using the ${progStyle.toUpperCase()} matrix. Voiced with ${chordNotes.length} notes according to the tension level (${tensionPercent.toFixed(0)}%).`;
                 }
             }
@@ -1836,9 +1873,15 @@
                 const onEndBehavior = document.getElementById('onSequencerEnd').value;
                 if (onEndBehavior === 'play_output') {
                     // Play final Output Chord
-                    const outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
+                    let outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
                     const tuningSystem = document.getElementById('tuningSys').value;
                     const driftCents = parseFloat(document.getElementById('microDrift').value);
+
+                    // Voice-lead Output Chord against the last bar of the generated progression
+                    const lastBarProg = progression[TOTAL_BARS - 1];
+                    if (lastBarProg && lastBarProg.notes && lastBarProg.notes.length > 0) {
+                        outputNotes = voiceLeadChord(outputNotes, lastBarProg.notes);
+                    }
 
                     // Trigger bass & chord beautifully
                     triggerBassSynth(scheduledNextNoteTime, outputNotes[0], tuningSystem, driftCents);
@@ -2307,19 +2350,26 @@
 
         // Populate Candidate 1: Classic Jazz Standard base
         let tempProg1 = new Array(TOTAL_BARS).fill(null);
+        let degrees1 = [0, 9, 2, 7]; // I - vi - ii - V
+        let qualities1 = ["maj7", "m7", "m7", "7"];
         for(let b=0; b<TOTAL_BARS; b++) {
             let isBridge = (b % 4 === 3);
             let notes = [];
             let name = "";
             let explanation = "";
             if (isBridge) {
-                notes = [root + bridgeInterval + 12, root + bridgeInterval + 15, root + bridgeInterval + 19];
-                name = `Bridge Root Chord`;
-                explanation = "Bridge tension bar.";
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 3, bridgeRoot + 6, bridgeRoot + 10]; // m7b5 bridge
+                name = `${notesArray[bridgeRoot % 12]}m7b5 (Bridge Tension)`;
+                explanation = "Tense bridge chord.";
             } else {
-                notes = [root, root + 4, root + 7, root + 11];
-                name = `Consonant Root Chord`;
-                explanation = "Consonant jazz base.";
+                let sub = b % 4;
+                let cRoot = (root + degrees1[sub]) % 12 + 48;
+                let q = qualities1[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : ((q === 'm7') ? [0, 3, 7, 10] : [0, 4, 7, 10]);
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Consonant jazz base chord.";
             }
             tempProg1[b] = { notes, name, isBridge, explanation };
         }
@@ -2327,19 +2377,26 @@
 
         // Populate Candidate 2: Circle of Fifths style base
         let tempProg2 = new Array(TOTAL_BARS).fill(null);
+        let degrees2 = [0, 8, 10, 0]; // I - bVI - bVII - I modal interchange
+        let qualities2 = ["maj7", "maj7", "7", "maj7"];
         for(let b=0; b<TOTAL_BARS; b++) {
             let isBridge = (b % 4 >= 2);
             let notes = [];
             let name = "";
             let explanation = "";
             if (isBridge) {
-                notes = [root + bridgeInterval + 12, root + bridgeInterval + 14, root + bridgeInterval + 17];
-                name = `Minor Bridge Dissonance`;
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 2, bridgeRoot + 3, bridgeRoot + 7, bridgeRoot + 8]; // Hirajoshi pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Hirajoshi Bridge`;
                 explanation = "Bridge tension bar.";
             } else {
-                notes = [root + 5, root + 9, root + 12, root + 16];
-                name = `Subdominant IV Maj7`;
-                explanation = "Borrowing from Circle of Fifths.";
+                let sub = b % 4;
+                let cRoot = (root + degrees2[sub]) % 12 + 48;
+                let q = qualities2[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : [0, 4, 7, 10];
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Modal borrowing consonant base.";
             }
             tempProg2[b] = { notes, name, isBridge, explanation };
         }
@@ -2347,19 +2404,26 @@
 
         // Populate Candidate 3: Heavy Altered Pentatonic bridge tension
         let tempProg3 = new Array(TOTAL_BARS).fill(null);
+        let degrees3 = [0, 8, 4, 1, 7, 8]; // Coltrane Changes maj3rds shifting
+        let qualities3 = ["maj7", "maj7", "maj7", "maj7", "7", "maj7"];
         for(let b=0; b<TOTAL_BARS; b++) {
             let isBridge = (b % 8 >= 6);
             let notes = [];
             let name = "";
             let explanation = "";
             if (isBridge) {
-                notes = [root + bridgeInterval, root + bridgeInterval + 4, root + bridgeInterval + 6, root + bridgeInterval + 10];
-                name = `Altered Dominant Bridge`;
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 4, bridgeRoot + 6, bridgeRoot + 8, bridgeRoot + 10]; // Altered pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Altered Dominant Bridge`;
                 explanation = "Altered pentatonic scale.";
             } else {
-                notes = [root, root + 4, root + 7, root + 11, root + 14];
-                name = `Lydian Root Tonic`;
-                explanation = "Lydian base.";
+                let sub = b % 6;
+                let cRoot = (root + degrees3[sub]) % 12 + 48;
+                let q = qualities3[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11, 14] : [0, 4, 7, 10, 15]; // extended
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Coltrane Changes base.";
             }
             tempProg3[b] = { notes, name, isBridge, explanation };
         }
@@ -2367,18 +2431,28 @@
 
         // Populate Candidate 4: Chromatic steps line cliché
         let tempProg4 = new Array(TOTAL_BARS).fill(null);
+        let degrees4 = [0, 0, 0, 0];
+        let qualities4 = ["maj7", "maj7", "7", "maj7"];
         for(let b=0; b<TOTAL_BARS; b++) {
             let isBridge = (b % 6 >= 4);
             let notes = [];
             let name = "";
             let explanation = "";
             if (isBridge) {
-                notes = [root + bridgeInterval + 12, root + bridgeInterval + 15, root + bridgeInterval + 18];
-                name = `Tense Walkdown Bridge`;
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 1, bridgeRoot + 5, bridgeRoot + 7, bridgeRoot + 10]; // Insen pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Insen Bridge`;
                 explanation = "Bridge tension.";
             } else {
-                notes = [root, root + 3, root + 7, root + 10];
-                name = `Minor Tonic i-7`;
+                let sub = b % 4;
+                let cRoot = (root + degrees4[sub]) % 12 + 48;
+                let q = qualities4[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : [0, 4, 7, 10];
+                if (sub === 1) intervals = [0, 4, 7, 11]; // I(maj7)
+                if (sub === 2) intervals = [0, 4, 7, 10]; // I(7)
+                if (sub === 3) intervals = [0, 4, 7, 9];  // I(6)
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} Line Cliche Step`;
                 explanation = "Chromatic step base.";
             }
             tempProg4[b] = { notes, name, isBridge, explanation };
