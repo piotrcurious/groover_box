@@ -2193,6 +2193,80 @@
         alert(`Captured currently active progression chromosome and saved into Incubator #${idx+1}!`);
     };
 
+    // Validation function for checking offspring for obvious errors
+    function validateOffspring(childProg) {
+        let totalBars = childProg.length;
+        let bridgeCount = 0;
+        let baseCount = 0;
+
+        for (let b = 0; b < totalBars; b++) {
+            const bar = childProg[b];
+            if (!bar || !bar.notes || bar.notes.length === 0) {
+                return { valid: false, reason: `Bar ${b+1} is empty or has no notes` };
+            }
+            if (bar.notes.length < 3) {
+                return { valid: false, reason: `Bar ${b+1} chord has insufficient voicing size (${bar.notes.length} notes)` };
+            }
+
+            // Check duplicate pitches
+            let uniquePitches = new Set(bar.notes);
+            if (uniquePitches.size !== bar.notes.length) {
+                return { valid: false, reason: `Bar ${b+1} contains duplicate pitches` };
+            }
+
+            // Check out of bounds
+            for (let n of bar.notes) {
+                if (n < 24 || n > 115) {
+                    return { valid: false, reason: `Bar ${b+1} contains extreme out-of-bounds pitch (${n})` };
+                }
+            }
+
+            if (bar.isBridge) {
+                bridgeCount++;
+            } else {
+                baseCount++;
+            }
+        }
+
+        // Check for bridge/consonant contrast
+        if (bridgeCount < 4) {
+            return { valid: false, reason: `Insufficient bridge contrast (only ${bridgeCount} bridge bars, need at least 4)` };
+        }
+        if (baseCount < 8) {
+            return { valid: false, reason: `Insufficient base presence (only ${baseCount} base bars, need at least 8)` };
+        }
+
+        // Check for complete monotony (no chord change at all across 64 bars)
+        let firstChordJSON = JSON.stringify([...childProg[0].notes].sort((a,b)=>a-b));
+        let allSame = true;
+        for (let b = 1; b < totalBars; b++) {
+            let chordJSON = JSON.stringify([...childProg[b].notes].sort((a,b)=>a-b));
+            if (chordJSON !== firstChordJSON) {
+                allSame = false;
+                break;
+            }
+        }
+        if (allSame) {
+            return { valid: false, reason: "Lacks harmonic progression (all bars contain identical chords)" };
+        }
+
+        // Check for extreme cluster dissonance (consecutive semitones muddying the sound)
+        for (let b = 0; b < totalBars; b++) {
+            const sortedNotes = [...childProg[b].notes].sort((a, b) => a - b);
+            let clusterCount = 0;
+            for (let i = 0; i < sortedNotes.length - 1; i++) {
+                if (sortedNotes[i + 1] - sortedNotes[i] <= 1) {
+                    clusterCount++;
+                }
+            }
+            if (clusterCount > 2) {
+                return { valid: false, reason: `Bar ${b+1} has an extremely muddy cluster (${clusterCount} consecutive semitone clashes)` };
+            }
+        }
+
+        return { valid: true };
+    }
+
     // Trigger genetic crossover / crossbreeding
     window.triggerBreedingLabBreed = function() {
         const idxA = parseInt(document.getElementById('parentA').value);
@@ -2208,57 +2282,85 @@
             return;
         }
 
-        let childProg = new Array(TOTAL_BARS).fill(null);
+        let childProg = null;
+        let attempts = 0;
+        const maxAttempts = 100;
+        let validationResult = { valid: false, reason: "Not executed" };
+        let finalMutateCount = 0;
 
-        for (let b = 0; b < TOTAL_BARS; b++) {
-            let sourceParent = parentA;
+        while (attempts < maxAttempts) {
+            attempts++;
+            childProg = new Array(TOTAL_BARS).fill(null);
 
-            if (method === 'single') {
-                // Split exactly down the middle
-                sourceParent = (b < TOTAL_BARS / 2) ? parentA : parentB;
-            } else if (method === 'double') {
-                // Split at 1/4 and 3/4 bars
-                if (b >= TOTAL_BARS / 4 && b < (TOTAL_BARS * 3 / 4)) {
-                    sourceParent = parentB;
-                } else {
-                    sourceParent = parentA;
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                let sourceParent = parentA;
+
+                if (method === 'single') {
+                    // Split exactly down the middle
+                    sourceParent = (b < TOTAL_BARS / 2) ? parentA : parentB;
+                } else if (method === 'double') {
+                    // Split at 1/4 and 3/4 bars
+                    if (b >= TOTAL_BARS / 4 && b < (TOTAL_BARS * 3 / 4)) {
+                        sourceParent = parentB;
+                    } else {
+                        sourceParent = parentA;
+                    }
+                } else if (method === 'uniform') {
+                    // Random coin flip per bar
+                    sourceParent = (Math.random() > 0.5) ? parentA : parentB;
+                } else if (method === 'interleave') {
+                    // Alternate bars
+                    sourceParent = (b % 2 === 0) ? parentA : parentB;
                 }
-            } else if (method === 'uniform') {
-                // Random coin flip per bar
-                sourceParent = (Math.random() > 0.5) ? parentA : parentB;
-            } else if (method === 'interleave') {
-                // Alternate bars
-                sourceParent = (b % 2 === 0) ? parentA : parentB;
+
+                // Copy bar note details
+                childProg[b] = {
+                    notes: [...sourceParent.progression[b].notes],
+                    name: sourceParent.progression[b].name,
+                    isBridge: sourceParent.progression[b].isBridge,
+                    explanation: sourceParent.progression[b].explanation
+                };
             }
 
-            // Copy bar note details
-            childProg[b] = {
-                notes: [...sourceParent.progression[b].notes],
-                name: sourceParent.progression[b].name,
-                isBridge: sourceParent.progression[b].isBridge,
-                explanation: sourceParent.progression[b].explanation
-            };
+            // Apply a slight mutation automatically upon crossbreeding (dynamic adjustment)
+            let mutationProb = 0.10 + (attempts * 0.002);
+            finalMutateCount = 0;
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                if (Math.random() < mutationProb) {
+                    finalMutateCount++;
+                    let semitones = (Math.random() > 0.5) ? 1 : -1;
+                    if (attempts > 5) {
+                        let jumps = [1, -1, 5, -5, 7, -7, 12, -12];
+                        semitones = jumps[Math.floor(Math.random() * jumps.length)];
+                    }
+                    childProg[b].notes = childProg[b].notes.map(n => n + semitones);
+                    childProg[b].name += " (Mutated)";
+                }
+            }
+
+            validationResult = validateOffspring(childProg);
+            if (validationResult.valid) {
+                break;
+            } else {
+                console.warn(`[Regeneration Cycle] Offspring rejected on attempt ${attempts}: ${validationResult.reason}. Splicing and mutating again.`);
+            }
         }
 
-        // Apply a slight mutation automatically upon crossbreeding
-        let mutateCount = 0;
-        for (let b = 0; b < TOTAL_BARS; b++) {
-            if (Math.random() < 0.1) { // 10% auto mutation rate per bar on breed
-                mutateCount++;
-                // Simple transposition mutation
-                let semitones = (Math.random() > 0.5) ? 1 : -1;
-                childProg[b].notes = childProg[b].notes.map(n => n + semitones);
-                childProg[b].name += " (Mutated)";
-            }
+        if (!validationResult.valid) {
+            alert(`Crossover warning: Splicing generated consecutive errors after ${attempts} attempts. Keeping the last generated offspring anyway. Reason: ${validationResult.reason}`);
         }
 
         breedingCandidates[targetIdx] = {
             progression: childProg,
-            desc: `Hybrid Offspring (A: #${idxA+1} × B: #${idxB+1}, ${mutateCount} mutations)`
+            desc: `Hybrid Offspring (A: #${idxA+1} × B: #${idxB+1}, ${finalMutateCount} mutations, ${attempts} gen cycles)`
         };
 
         updateBreedingLabUI();
-        alert(`Successfully crossed parent chromosome DNA! Spliced offspring loaded into Incubator #${targetIdx+1}.`);
+        if (attempts > 1) {
+            alert(`Splicing Succeeded with Automatic Offspring Preselection!\nRegenerated ${attempts - 1} faulty offspring before obtaining a perfect candidate chromosome.`);
+        } else {
+            alert(`Successfully crossed parent chromosome DNA! Spliced offspring loaded into Incubator #${targetIdx+1}.`);
+        }
     };
 
     // Mutate candidate directly inside breeding lab
