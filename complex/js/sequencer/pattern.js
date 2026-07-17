@@ -5,10 +5,11 @@ export class Pattern {
         this.stepsPerBar = stepsPerBar; // 64 high-res slots per bar (or simplified 16 slots per bar for user)
 
         // 3D grid [barIndex][instrument][stepIndex]
-        // We will store 64 bars of patterns
+        // We will store 64 bars of patterns.
+        // arp elements are now stored as numbers representing tempo multipliers (0 = off, 1 = 1x, 2 = 2x, 3 = 3x, 4 = 4x, 0.5 = half-time)
         this.data = Array.from({ length: numBars }, () => ({
             bass: new Array(16).fill(false),
-            arp: new Array(16).fill(false),
+            arp: new Array(16).fill(0), // 0 represents inactive, positive floats/ints represent tempo multipliers
             kick: new Array(16).fill(false),
             snare: new Array(16).fill(false),
             hihat: new Array(16).fill(false)
@@ -22,7 +23,7 @@ export class Pattern {
         if (barIdx < 0 || barIdx >= this.numBars) return;
         const b = this.data[barIdx];
         b.bass.fill(false);
-        b.arp.fill(false);
+        b.arp.fill(0);
         b.kick.fill(false);
         b.snare.fill(false);
         b.hihat.fill(false);

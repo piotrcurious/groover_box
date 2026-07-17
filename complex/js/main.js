@@ -51,8 +51,10 @@ async function initApp() {
 
         // Default bass walk trigs
         for (let i = 0; i < 16; i += 4) patternInstance.data[b].bass[i] = true;
-        // Default arp trigs
-        for (let i = 0; i < 16; i += 3) patternInstance.data[b].arp[i] = true;
+        // Default arp trigs with various default multipliers (1x, 2x, 3x, 4x, 0.5x)
+        for (let i = 0; i < 16; i += 3) {
+            patternInstance.data[b].arp[i] = (i % 6 === 0) ? 2 : 1;
+        }
     }
 
     // 3. Generate initial Jazz Progression
@@ -146,26 +148,34 @@ function scheduleStep(stepIndex, time) {
     if (barPattern.snare[activeStepInBar]) synth.triggerDrum("snare", time);
     if (barPattern.hihat[activeStepInBar]) synth.triggerDrum("hihat", time);
 
-    // 2. Process walking bass trigger
+    // 2. Compute and process walking bass trigger
+    let activeBassMidi = 36; // Default active reference bass note
     if (barPattern.bass[activeStepInBar]) {
         const style = document.getElementById("selectBassStyle").value;
         const bias = parseInt(document.getElementById("sliderBassBias").value);
         const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
 
-        const rawMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
-        const tuningFreq = tuningSystem.getFrequencyInfo(rawMidi).frequency;
+        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
+        const tuningFreq = tuningSystem.getFrequencyInfo(activeBassMidi).frequency;
 
         synth.triggerPluckedBass(tuningFreq, time, 0.35);
 
         // Redraw Tonnetz with active bass note
         requestAnimationFrame(() => {
-            Visualizers.drawTonnetz(document.getElementById("canvasTonnetz"), [rawMidi]);
-            highlightKeyboardKey(rawMidi);
+            Visualizers.drawTonnetz(document.getElementById("canvasTonnetz"), [activeBassMidi]);
+            highlightKeyboardKey(activeBassMidi);
         });
+    } else {
+        // Approximate a baseline note for the current step if not triggered explicitly
+        const style = document.getElementById("selectBassStyle").value;
+        const bias = parseInt(document.getElementById("sliderBassBias").value);
+        const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
+        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
     }
 
-    // 3. Process arpeggiation triggers
-    if (barPattern.arp[activeStepInBar]) {
+    // 3. Process arpeggiation triggers with variable tempo multipliers and bass context tracking
+    const arpTempoMultiplier = barPattern.arp[activeStepInBar] || 0;
+    if (arpTempoMultiplier > 0) {
         const order = document.getElementById("selectArpOrder").value;
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
@@ -178,39 +188,63 @@ function scheduleStep(stepIndex, time) {
         const gatePerc = parseInt(document.getElementById("sliderArpGate").value);
         const octStyle = document.getElementById("selectOctaveStyle").value;
 
-        const arpRes = arpGenerator.getNextNote(
-            activeChord,
-            activeStepInBar,
-            order,
-            octaves,
-            ghost,
-            density,
-            accentLevel,
-            mutationRate,
-            octStyle
-        );
+        // Number of sub-notes to schedule based on our tempo multiplier
+        // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
+        const numSubdivisions = arpTempoMultiplier >= 1 ? Math.floor(arpTempoMultiplier) : 1;
 
-        if (arpRes.trigger) {
-            const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
-            const soundStyle = document.getElementById("selectArpSound").value;
+        // Calculate the base duration of a single step based on sequencer clock
+        // Steps occur at (60 / bpm) / 4 (representing a 16th note step)
+        const stepDurationSeconds = (60.0 / clock.bpm) / 4.0;
 
-            // Compute humanized micro-timing delay (seconds)
-            const humanizedDelay = (Math.random() * humanizeMs) / 1000.0;
-            const triggerTime = time + humanizedDelay;
+        // Calculate time subdivision spacer
+        const subdivisionSpacer = stepDurationSeconds / numSubdivisions;
 
-            // Calculate duration multiplier based on gate ratio (defaults to standard plucks)
-            const gateMultiplier = gatePerc / 100.0;
+        for (let sub = 0; sub < numSubdivisions; sub++) {
+            // Predict the progression of the bass note into the next micro-intervals
+            // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
+            const arpRes = arpGenerator.getNextNote(
+                activeChord,
+                activeStepInBar,
+                order,
+                octaves,
+                ghost,
+                density,
+                accentLevel,
+                mutationRate,
+                octStyle,
+                activeBassMidi
+            );
 
-            // Trigger voices with dynamic velocity and gate parameters
-            const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
+            // Handle half-time tempo multiplier skip boundary check
+            if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
+                // In half-time mode, skip trigger processing on odd steps to keep arpeggio executing at half speed
+                continue;
+            }
 
-            if (soundStyle === "fm") {
-                synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
-            } else if (soundStyle === "subtractive") {
-                synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
-            } else {
-                // Sine simple waves pluck
-                synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+            if (arpRes.trigger) {
+                const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
+                const soundStyle = document.getElementById("selectArpSound").value;
+
+                // Compute humanized micro-timing delay (seconds)
+                const humanizedDelay = (Math.random() * humanizeMs) / 1000.0;
+
+                // Position subdivisions sequentially inside the step timeframe boundaries
+                const triggerTime = time + (sub * subdivisionSpacer) + humanizedDelay;
+
+                // Scale duration multiplier based on division rate & gate ratio settings
+                const gateMultiplier = (gatePerc / 100.0) / numSubdivisions;
+
+                // Trigger voices with dynamic velocity and gate parameters
+                const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
+
+                if (soundStyle === "fm") {
+                    synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                } else if (soundStyle === "subtractive") {
+                    synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                } else {
+                    // Sine simple waves pluck
+                    synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+                }
             }
         }
     }
@@ -303,17 +337,78 @@ function renderGrids() {
             }
         }
 
-        // 3. Render arp rows for Bar index b
+        // 3. Render arp rows for Bar index b with custom tempo multipliers cycler (0 -> 1 -> 2 -> 3 -> 4 -> 0.5)
         const arpContainer = document.getElementById(`gridArp-${b}`);
         if (arpContainer) {
             arpContainer.innerHTML = "";
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement("div");
-                cell.className = `step-cell ${barPattern.arp[i] ? "active-arp" : ""}`;
+                const mult = barPattern.arp[i] || 0;
+
+                cell.className = "step-cell";
                 cell.id = `arp-step-${b}-${i}`;
+
+                // Set color class based on the selected multiplier value
+                if (mult > 0) {
+                    cell.classList.add("active-arp");
+                    cell.setAttribute("data-mult", mult);
+                    if (mult === 0.5) {
+                        cell.style.background = "var(--accent-purple)";
+                    } else if (mult === 2) {
+                        cell.style.background = "var(--accent-pink)";
+                    } else if (mult === 3) {
+                        cell.style.background = "var(--accent-yellow)";
+                    } else if (mult === 4) {
+                        cell.style.background = "#ff5722"; // Bright Orange
+                    } else {
+                        cell.style.background = "var(--accent-cyan)"; // Standard 1x
+                    }
+                    cell.innerText = mult + "x";
+                    cell.style.fontSize = "0.55rem";
+                    cell.style.fontWeight = "bold";
+                    cell.style.color = "#000";
+                    cell.style.display = "flex";
+                    cell.style.alignItems = "center";
+                    cell.style.justifyContent = "center";
+                } else {
+                    cell.innerText = "";
+                    cell.style.background = "";
+                }
+
                 cell.addEventListener("click", () => {
-                    barPattern.arp[i] = !barPattern.arp[i];
-                    cell.classList.toggle("active-arp");
+                    // Cycle: 0 -> 1 -> 2 -> 3 -> 4 -> 0.5 -> 0
+                    const cycle = [0, 1, 2, 3, 4, 0.5];
+                    const currIdx = cycle.indexOf(barPattern.arp[i]);
+                    const nextVal = cycle[(currIdx + 1) % cycle.length];
+                    barPattern.arp[i] = nextVal;
+
+                    if (nextVal > 0) {
+                        cell.classList.add("active-arp");
+                        cell.setAttribute("data-mult", nextVal);
+                        if (nextVal === 0.5) {
+                            cell.style.background = "var(--accent-purple)";
+                        } else if (nextVal === 2) {
+                            cell.style.background = "var(--accent-pink)";
+                        } else if (nextVal === 3) {
+                            cell.style.background = "var(--accent-yellow)";
+                        } else if (nextVal === 4) {
+                            cell.style.background = "#ff5722";
+                        } else {
+                            cell.style.background = "var(--accent-cyan)";
+                        }
+                        cell.innerText = nextVal + "x";
+                        cell.style.fontSize = "0.55rem";
+                        cell.style.fontWeight = "bold";
+                        cell.style.color = "#000";
+                        cell.style.display = "flex";
+                        cell.style.alignItems = "center";
+                        cell.style.justifyContent = "center";
+                    } else {
+                        cell.classList.remove("active-arp");
+                        cell.removeAttribute("data-mult");
+                        cell.style.background = "";
+                        cell.innerText = "";
+                    }
                 });
                 arpContainer.appendChild(cell);
             }

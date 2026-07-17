@@ -1,4 +1,6 @@
 // Highly expressive, multi-algorithm generative arpeggiator engine
+// Upgraded to consider the active and next bass note registers for chordal voicing density,
+// and to avoid muddy intervals or frequency clashes dynamically.
 export class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -6,6 +8,7 @@ export class ArpGenerator {
 
     /**
      * Determines next arpeggiator note, velocity, and timing trigger parameters.
+     * Includes harmonic check against upcoming bass note to ensure beautiful spacing.
      * @param {Object} chord - Current chord configuration
      * @param {number} step - Current bar step index (0-15)
      * @param {string} order - Arp note arrangement rule ('updown', 'funky', 'brownian', 'converge', 'retrograde', 'enclosure')
@@ -15,6 +18,7 @@ export class ArpGenerator {
      * @param {number} accentLevel - Impact scaling of structural accents (0-100)
      * @param {number} mutationRate - Probability of mutating a note to a dynamic passing/outside tone (0-100)
      * @param {string} octStyle - Octave jumping style ('linear', 'alternate', 'random', 'fixed')
+     * @param {number} bassNote - Active or upcoming bass note (MIDI value)
      */
     getNextNote(
         chord,
@@ -25,7 +29,8 @@ export class ArpGenerator {
         density = 100,
         accentLevel = 50,
         mutationRate = 15,
-        octStyle = "linear"
+        octStyle = "linear",
+        bassNote = 36
     ) {
         // Density filter: if random threshold is not met, do not trigger an active note event
         if (Math.random() * 100 > density) {
@@ -98,7 +103,24 @@ export class ArpGenerator {
 
         targetNote += octOffset * 12;
 
-        // 4. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        // 4. Bass-Contextual Harmonic Filtering (Avoid muddy frequencies & minor second interval clashes)
+        // Ensure the arpeggio is positioned at a reasonable interval distance above the bass note
+        if (bassNote > 0) {
+            // Shift arpeggio up by octaves if it gets too close to the bass range (within 12 semitones)
+            while (targetNote <= bassNote + 12) {
+                targetNote += 12;
+            }
+
+            // Resolve minor second clashing intervals against the bass note (e.g. adjust to nearest third or perfect fourth)
+            const intervalDiff = Math.abs(targetNote - bassNote) % 12;
+            if (intervalDiff === 1) {
+                targetNote += 1; // Shift half-step up to make it a major second
+            } else if (intervalDiff === 11) {
+                targetNote += 1; // Resolve minor seventh clashing boundaries upwards
+            }
+        }
+
+        // 5. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (Math.random() * 100 < mutationRate) {
             // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
@@ -107,7 +129,7 @@ export class ArpGenerator {
             isMutated = true;
         }
 
-        // 5. Advanced Accent & Velocity Modeling
+        // 6. Advanced Accent & Velocity Modeling
         let velocity = 85;
         let isGhost = false;
 
