@@ -103,6 +103,90 @@
             </div>
 
             <div class="panel">
+                <div class="panel-title">External Integration (In/Out Chords)</div>
+
+                <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 6px; cursor: pointer;">
+                        <input type="checkbox" id="checkEnableInputChord"> Force Start Chord (Input)
+                    </label>
+                    <div class="control-row" id="inputChordControls" style="opacity: 0.5; pointer-events: none; transition: opacity 0.2s;">
+                        <div class="control-group">
+                            <label>Root Note</label>
+                            <select id="selectInputRoot">
+                                <option value="60" selected>C (60)</option>
+                                <option value="61">Db (61)</option>
+                                <option value="62">D (62)</option>
+                                <option value="63">Eb (63)</option>
+                                <option value="64">E (64)</option>
+                                <option value="65">F (65)</option>
+                                <option value="66">Gb (66)</option>
+                                <option value="67">G (67)</option>
+                                <option value="68">Ab (68)</option>
+                                <option value="69">A (69)</option>
+                                <option value="70">Bb (70)</option>
+                                <option value="71">B (71)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Quality</label>
+                            <select id="selectInputQuality">
+                                <option value="maj9" selected>maj9</option>
+                                <option value="maj13">maj13</option>
+                                <option value="min9">min9</option>
+                                <option value="min11">min11</option>
+                                <option value="dom9">dom9</option>
+                                <option value="dom13">dom13</option>
+                                <option value="dom7alt">7alt</option>
+                                <option value="m7b5">m7b5 (ø)</option>
+                                <option value="dim7">dim7</option>
+                                <option value="maj7sharp11">maj7#11</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 6px; cursor: pointer;">
+                        <input type="checkbox" id="checkEnableOutputChord"> Voice-lead to Target (Output)
+                    </label>
+                    <div class="control-row" id="outputChordControls" style="opacity: 0.5; pointer-events: none; transition: opacity 0.2s;">
+                        <div class="control-group">
+                            <label>Root Note</label>
+                            <select id="selectOutputRoot">
+                                <option value="60">C (60)</option>
+                                <option value="61">Db (61)</option>
+                                <option value="62" selected>D (62)</option>
+                                <option value="63">Eb (63)</option>
+                                <option value="64">E (64)</option>
+                                <option value="65">F (65)</option>
+                                <option value="66">Gb (66)</option>
+                                <option value="67">G (67)</option>
+                                <option value="68">Ab (68)</option>
+                                <option value="69">A (69)</option>
+                                <option value="70">Bb (70)</option>
+                                <option value="71">B (71)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Quality</label>
+                            <select id="selectOutputQuality">
+                                <option value="maj9">maj9</option>
+                                <option value="maj13">maj13</option>
+                                <option value="min9" selected>min9</option>
+                                <option value="min11">min11</option>
+                                <option value="dom9">dom9</option>
+                                <option value="dom13">dom13</option>
+                                <option value="dom7alt">7alt</option>
+                                <option value="m7b5">m7b5 (ø)</option>
+                                <option value="dim7">dim7</option>
+                                <option value="maj7sharp11">maj7#11</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
                 <div class="panel-title">Microtonal Tuning</div>
                 <div class="control-group" style="margin-bottom: 12px;">
                     <label>Temperament System</label>

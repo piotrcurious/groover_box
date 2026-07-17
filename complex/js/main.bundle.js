@@ -1669,8 +1669,10 @@ class JazzProgression {
      * @param {string} style - Stylistic goal configuration
      * @param {number} jazzPerc - Slider value 0-100 indicating jazz density
      * @param {number} outsidePerc - Slider value 0-100 indicating substitution density
+     * @param {Object|null} inputChord - Optional fixed initial chord {root: number, quality: string}
+     * @param {Object|null} outputChord - Optional subsequent target chord {root: number, quality: string}
      */
-    generate(root, style, jazzPerc = 60, outsidePerc = 20) {
+    generate(root, style, jazzPerc = 60, outsidePerc = 20, inputChord = null, outputChord = null) {
         const progression = [];
         const optimizer = new GraphOptimizer();
 
@@ -1692,7 +1694,14 @@ class JazzProgression {
                 localRoot = (root + 9) % 12 + 48;
             }
 
-            if (subBar === 0) {
+            if (b === 0 && inputChord) {
+                candidates.push({
+                    root: inputChord.root,
+                    quality: inputChord.quality,
+                    name: `${this.getNoteName(inputChord.root)}${inputChord.quality} (Input)`,
+                    type: "tonic"
+                });
+            } else if (subBar === 0) {
                 // I chord candidates (Tonic center)
                 candidates.push({ root: localRoot, quality: "maj9", name: `${this.getNoteName(localRoot)}maj9`, type: "tonic" });
                 candidates.push({ root: localRoot, quality: "maj13", name: `${this.getNoteName(localRoot)}maj13`, type: "tonic" });
@@ -1785,10 +1794,20 @@ class JazzProgression {
             return vlCost + commonBonus + syntaxBonus;
         };
 
+        // If outputChord is provided, append as 65th target node to guide transition voice leading
+        if (outputChord) {
+            candidatesByBar.push([{
+                root: outputChord.root,
+                quality: outputChord.quality,
+                name: `${this.getNoteName(outputChord.root)}${outputChord.quality} (Output Target)`,
+                type: "tonic"
+            }]);
+        }
+
         // 3. Find global path using DP lookahead
         const rawPath = optimizer.findOptimalPath(candidatesByBar, transitionScorer, 4);
 
-        // Map raw chords into progression blocks
+        // Map raw chords into progression blocks (only take the first 64 elements)
         for (let b = 0; b < 64; b++) {
             const chordMeta = rawPath[b] || candidatesByBar[b][0];
             const notes = buildChord(chordMeta.root, chordMeta.quality);
@@ -1882,7 +1901,21 @@ function generateProgression() {
     const jazzPerc = parseInt(document.getElementById("sliderJazzPerc").value);
     const outsidePerc = parseInt(document.getElementById("sliderOutsidePerc").value);
 
-    activeProgression = jazzProgression.generate(rootKey, style, jazzPerc, outsidePerc);
+    // Dynamic optional input and output chords from external integration panels
+    const enableInput = document.getElementById("checkEnableInputChord").checked;
+    const enableOutput = document.getElementById("checkEnableOutputChord").checked;
+
+    const inputChord = enableInput ? {
+        root: parseInt(document.getElementById("selectInputRoot").value),
+        quality: document.getElementById("selectInputQuality").value
+    } : null;
+
+    const outputChord = enableOutput ? {
+        root: parseInt(document.getElementById("selectOutputRoot").value),
+        quality: document.getElementById("selectOutputQuality").value
+    } : null;
+
+    activeProgression = jazzProgression.generate(rootKey, style, jazzPerc, outsidePerc, inputChord, outputChord);
 
     // Add brief bridges if configured
     const bridgeLen = parseInt(document.getElementById("sliderBridgeLength").value);
@@ -2262,6 +2295,46 @@ function highlightKeyboardKey(midiNote) {
 }
 
 function bindUIEvents() {
+    // Toggle input/output chord controls state based on checkbox
+    const checkEnableInput = document.getElementById("checkEnableInputChord");
+    const checkEnableOutput = document.getElementById("checkEnableOutputChord");
+
+    const toggleInputControls = () => {
+        const ctrl = document.getElementById("inputChordControls");
+        if (checkEnableInput.checked) {
+            ctrl.style.opacity = "1";
+            ctrl.style.pointerEvents = "auto";
+        } else {
+            ctrl.style.opacity = "0.5";
+            ctrl.style.pointerEvents = "none";
+        }
+    };
+
+    const toggleOutputControls = () => {
+        const ctrl = document.getElementById("outputChordControls");
+        if (checkEnableOutput.checked) {
+            ctrl.style.opacity = "1";
+            ctrl.style.pointerEvents = "auto";
+        } else {
+            ctrl.style.opacity = "0.5";
+            ctrl.style.pointerEvents = "none";
+        }
+    };
+
+    checkEnableInput.addEventListener("change", () => {
+        toggleInputControls();
+        generateProgression();
+    });
+    checkEnableOutput.addEventListener("change", () => {
+        toggleOutputControls();
+        generateProgression();
+    });
+
+    document.getElementById("selectInputRoot").addEventListener("change", () => generateProgression());
+    document.getElementById("selectInputQuality").addEventListener("change", () => generateProgression());
+    document.getElementById("selectOutputRoot").addEventListener("change", () => generateProgression());
+    document.getElementById("selectOutputQuality").addEventListener("change", () => generateProgression());
+
     // 1. Play / Pause Control
     const btnPlay = document.getElementById("btnPlay");
     btnPlay.addEventListener("click", async () => {

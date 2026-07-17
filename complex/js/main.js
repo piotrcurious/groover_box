@@ -82,7 +82,21 @@ function generateProgression() {
     const jazzPerc = parseInt(document.getElementById("sliderJazzPerc").value);
     const outsidePerc = parseInt(document.getElementById("sliderOutsidePerc").value);
 
-    activeProgression = jazzProgression.generate(rootKey, style, jazzPerc, outsidePerc);
+    // Dynamic optional input and output chords from external integration panels
+    const enableInput = document.getElementById("checkEnableInputChord").checked;
+    const enableOutput = document.getElementById("checkEnableOutputChord").checked;
+
+    const inputChord = enableInput ? {
+        root: parseInt(document.getElementById("selectInputRoot").value),
+        quality: document.getElementById("selectInputQuality").value
+    } : null;
+
+    const outputChord = enableOutput ? {
+        root: parseInt(document.getElementById("selectOutputRoot").value),
+        quality: document.getElementById("selectOutputQuality").value
+    } : null;
+
+    activeProgression = jazzProgression.generate(rootKey, style, jazzPerc, outsidePerc, inputChord, outputChord);
 
     // Add brief bridges if configured
     const bridgeLen = parseInt(document.getElementById("sliderBridgeLength").value);
@@ -462,6 +476,46 @@ function highlightKeyboardKey(midiNote) {
 }
 
 function bindUIEvents() {
+    // Toggle input/output chord controls state based on checkbox
+    const checkEnableInput = document.getElementById("checkEnableInputChord");
+    const checkEnableOutput = document.getElementById("checkEnableOutputChord");
+
+    const toggleInputControls = () => {
+        const ctrl = document.getElementById("inputChordControls");
+        if (checkEnableInput.checked) {
+            ctrl.style.opacity = "1";
+            ctrl.style.pointerEvents = "auto";
+        } else {
+            ctrl.style.opacity = "0.5";
+            ctrl.style.pointerEvents = "none";
+        }
+    };
+
+    const toggleOutputControls = () => {
+        const ctrl = document.getElementById("outputChordControls");
+        if (checkEnableOutput.checked) {
+            ctrl.style.opacity = "1";
+            ctrl.style.pointerEvents = "auto";
+        } else {
+            ctrl.style.opacity = "0.5";
+            ctrl.style.pointerEvents = "none";
+        }
+    };
+
+    checkEnableInput.addEventListener("change", () => {
+        toggleInputControls();
+        generateProgression();
+    });
+    checkEnableOutput.addEventListener("change", () => {
+        toggleOutputControls();
+        generateProgression();
+    });
+
+    document.getElementById("selectInputRoot").addEventListener("change", () => generateProgression());
+    document.getElementById("selectInputQuality").addEventListener("change", () => generateProgression());
+    document.getElementById("selectOutputRoot").addEventListener("change", () => generateProgression());
+    document.getElementById("selectOutputQuality").addEventListener("change", () => generateProgression());
+
     // 1. Play / Pause Control
     const btnPlay = document.getElementById("btnPlay");
     btnPlay.addEventListener("click", async () => {
