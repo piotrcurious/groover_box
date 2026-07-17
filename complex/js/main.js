@@ -189,18 +189,29 @@ function scheduleStep(stepIndex, time) {
 
     // 3. Process arpeggiation triggers with variable tempo multipliers and bass context tracking
     const arpTempoMultiplier = barPattern.arp[activeStepInBar] || 0;
-    if (arpTempoMultiplier > 0) {
+
+    // Position half-time early skip logic before executing any generator index steps
+    let shouldSkipArp = false;
+    if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
+        shouldSkipArp = true;
+    }
+
+    if (arpTempoMultiplier > 0 && !shouldSkipArp) {
         const order = document.getElementById("selectArpOrder").value;
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
 
-        // Fetch new advanced generative arpeggiator parameter values
+        // Fetch advanced generative arpeggiator parameter values including the new ones
         const density = parseInt(document.getElementById("sliderArpDensity").value);
         const accentLevel = parseInt(document.getElementById("sliderAccentScaling").value);
         const mutationRate = parseInt(document.getElementById("sliderArpMutation").value);
         const humanizeMs = parseInt(document.getElementById("sliderArpHumanize").value);
         const gatePerc = parseInt(document.getElementById("sliderArpGate").value);
         const octStyle = document.getElementById("selectOctaveStyle").value;
+
+        const velocityRandomness = parseInt(document.getElementById("sliderArpVelocityRand").value || "15");
+        const spread = parseInt(document.getElementById("selectArpSpread").value || "0");
+        const rhythmMode = document.getElementById("selectArpRhythmMode").value || "standard";
 
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
@@ -214,11 +225,14 @@ function scheduleStep(stepIndex, time) {
         const subdivisionSpacer = stepDurationSeconds / numSubdivisions;
 
         for (let sub = 0; sub < numSubdivisions; sub++) {
+            // Resolution-independent virtual step index scales sequence parameters correctly
+            const virtualStep = (activeStepInBar * numSubdivisions) + sub;
+
             // Predict the progression of the bass note into the next micro-intervals
             // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
-                activeStepInBar,
+                virtualStep,
                 order,
                 octaves,
                 ghost,
@@ -226,14 +240,11 @@ function scheduleStep(stepIndex, time) {
                 accentLevel,
                 mutationRate,
                 octStyle,
-                activeBassMidi
+                activeBassMidi,
+                velocityRandomness,
+                spread,
+                rhythmMode
             );
-
-            // Handle half-time tempo multiplier skip boundary check
-            if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
-                // In half-time mode, skip trigger processing on odd steps to keep arpeggio executing at half speed
-                continue;
-            }
 
             if (arpRes.trigger) {
                 const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
@@ -564,7 +575,8 @@ function bindUIEvents() {
         { id: "sliderAccentScaling", lbl: "lblAccentScaling", action: () => {} },
         { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
         { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
-        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} }
+        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} },
+        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
@@ -591,10 +603,18 @@ function bindUIEvents() {
         for (let b = 0; b < 4; b++) {
             // Populate interesting Euclidean grids across all 4 bars
             const bassEuclidean = Pattern.generateEuclidean(steps, 5 + b, b);
-            const arpEuclidean = Pattern.generateEuclidean(steps, 9 + b, (b + 1) % 4);
+            const arpEuclideanRaw = Pattern.generateEuclidean(steps, 9 + b, (b + 1) % 4);
 
             patternInstance.data[b].bass = bassEuclidean;
-            patternInstance.data[b].arp = arpEuclidean;
+
+            // Convert boolean Euclidean trigger states to valid arpeggiator numerical multipliers [1, 2, 3, 4, 0.5]
+            const multChoices = [1, 1, 2, 0.5];
+            patternInstance.data[b].arp = arpEuclideanRaw.map((trigger, idx) => {
+                if (trigger) {
+                    return multChoices[(idx + b) % multChoices.length];
+                }
+                return 0;
+            });
         }
         renderGrids();
     });
@@ -607,7 +627,14 @@ function bindUIEvents() {
                 barPattern.snare[i] = Math.random() > 0.85;
                 barPattern.hihat[i] = Math.random() > 0.65;
                 barPattern.bass[i] = Math.random() > 0.75;
-                barPattern.arp[i] = Math.random() > 0.7;
+
+                // Randomly choose from tempo multipliers instead of a boolean value
+                if (Math.random() > 0.7) {
+                    const multChoices = [1, 1, 2, 3, 4, 0.5];
+                    barPattern.arp[i] = multChoices[Math.floor(Math.random() * multChoices.length)];
+                } else {
+                    barPattern.arp[i] = 0;
+                }
             }
         }
         renderGrids();

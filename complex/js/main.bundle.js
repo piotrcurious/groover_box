@@ -941,8 +941,8 @@ const midiManager = new MidiManager();
 
 // --- MODULE: complex/js/arp/arpGenerator.js ---
 // Highly expressive, multi-algorithm generative arpeggiator engine
-// Upgraded to consider the active and next bass note registers for chordal voicing density,
-// and to avoid muddy intervals or frequency clashes dynamically.
+// Upgraded with resolution-independent virtual steps, velocity randomness,
+// interval spread, and syncopated rhythmic complexity modes.
 class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -952,8 +952,8 @@ class ArpGenerator {
      * Determines next arpeggiator note, velocity, and timing trigger parameters.
      * Includes harmonic check against upcoming bass note to ensure beautiful spacing.
      * @param {Object} chord - Current chord configuration
-     * @param {number} step - Current bar step index (0-15)
-     * @param {string} order - Arp note arrangement rule ('updown', 'funky', 'brownian', 'converge', 'retrograde', 'enclosure')
+     * @param {number} step - Resolution-independent virtual step index
+     * @param {string} order - Arp note arrangement rule
      * @param {number} octaves - Range of octave displacement (1-4)
      * @param {number} ghostChance - Percentage probability of triggering quiet ghost note (0-100)
      * @param {number} density - Trigger density percentage (0-100)
@@ -961,6 +961,9 @@ class ArpGenerator {
      * @param {number} mutationRate - Probability of mutating a note to a dynamic passing/outside tone (0-100)
      * @param {string} octStyle - Octave jumping style ('linear', 'alternate', 'random', 'fixed')
      * @param {number} bassNote - Active or upcoming bass note (MIDI value)
+     * @param {number} velocityRandomness - Variance in dynamic range (0-100)
+     * @param {number} spread - Interval spread voicing mode (0 = Closed, 1 = Fifth alternate, 2 = Octave alternate, 3 = Wide fifth-octave alternate)
+     * @param {string} rhythmMode - Complexity modes ('standard', 'syncopated', 'dotted', 'ratchet')
      */
     getNextNote(
         chord,
@@ -972,14 +975,54 @@ class ArpGenerator {
         accentLevel = 50,
         mutationRate = 15,
         octStyle = "linear",
-        bassNote = 36
+        bassNote = 36,
+        velocityRandomness = 15,
+        spread = 0,
+        rhythmMode = "standard"
     ) {
-        // Density filter: if random threshold is not met, do not trigger an active note event
-        if (Math.random() * 100 > density) {
+        // 1. Rhythm complexity filters
+        let skipTrigger = false;
+        let isForcedAccent = false;
+        let isForcedGhost = false;
+
+        if (rhythmMode === "syncopated") {
+            // Accent the offbeats, occasionally drop the downbeats
+            const isDownbeat = (step % 4 === 0);
+            if (isDownbeat && Math.random() < 0.25) {
+                // 25% chance of dropping downbeats for syncopation
+                skipTrigger = true;
+            } else if (!isDownbeat && (step % 2 !== 0) && Math.random() < 0.8) {
+                // High offbeat accentuation
+                isForcedAccent = true;
+            }
+        } else if (rhythmMode === "dotted") {
+            // Emulate dotted pattern feel (accenting/triggering on 3s, skipping others or turning them into ghosts)
+            if (step % 3 !== 0) {
+                if (Math.random() < 0.6) {
+                    skipTrigger = true;
+                } else {
+                    isForcedGhost = true;
+                }
+            } else {
+                isForcedAccent = true;
+            }
+        } else if (rhythmMode === "ratchet") {
+            // Add a burst of speed and intensity on subdivision patterns
+            if (step % 8 === 0 || step % 8 === 1) {
+                isForcedAccent = true;
+            } else if (step % 4 === 2 && Math.random() < 0.3) {
+                skipTrigger = true;
+            }
+        }
+
+        // Density filter: if random threshold is not met or skipTrigger is active, do not play
+        if (skipTrigger || (Math.random() * 100 > density)) {
+            this.index++; // Keep advancing the index so we don't stagnate on the same note
             return { note: 60, velocity: 0, isGhost: false, trigger: false };
         }
 
         if (!chord || !chord.notes || chord.notes.length === 0) {
+            this.index++;
             return { note: 60, velocity: 0, isGhost: false, trigger: false };
         }
 
@@ -987,7 +1030,7 @@ class ArpGenerator {
         const len = notes.length;
         let noteIdx = 0;
 
-        // 1. Core Pattern/Arrangement Ordering Algorithms
+        // 2. Core Pattern/Arrangement Ordering Algorithms
         if (order === "updown") {
             const cycle = (len * 2) - 2;
             const pos = this.index % Math.max(1, cycle);
@@ -1018,7 +1061,7 @@ class ArpGenerator {
 
         let targetNote = notes[noteIdx] || notes[0];
 
-        // 2. Chromatic / Bebop Passing Enclosures
+        // 3. Chromatic / Bebop Passing Enclosures
         if (order === "enclosure" && len > 1) {
             // Wrap the target note using a 3-step chromatic enclosure
             const encStep = step % 3;
@@ -1030,7 +1073,25 @@ class ArpGenerator {
             // encStep === 2 resolves perfectly to the chord tone
         }
 
-        // 3. Dynamic Octave Jumping Styles
+        // 4. Open Voicing Interval Spread Transpositions
+        // 0 = Closed (no transpose), 1 = Fifth alternate (+7 on odd indices), 2 = Octave alternate (+12 on odd indices), 3 = Wide Fifth-Octave (+19 on odd, +7 on even indexes)
+        if (spread === 1) {
+            if (noteIdx % 2 !== 0) {
+                targetNote += 7;
+            }
+        } else if (spread === 2) {
+            if (noteIdx % 2 !== 0) {
+                targetNote += 12;
+            }
+        } else if (spread === 3) {
+            if (noteIdx % 2 !== 0) {
+                targetNote += 19;
+            } else {
+                targetNote += 7;
+            }
+        }
+
+        // 5. Dynamic Octave Jumping Styles
         let octOffset = 0;
         const maxOct = Math.max(1, octaves);
         if (octStyle === "linear") {
@@ -1045,8 +1106,7 @@ class ArpGenerator {
 
         targetNote += octOffset * 12;
 
-        // 4. Bass-Contextual Harmonic Filtering (Avoid muddy frequencies & minor second interval clashes)
-        // Ensure the arpeggio is positioned at a reasonable interval distance above the bass note
+        // 6. Bass-Contextual Harmonic Filtering (Avoid muddy frequencies & minor second interval clashes)
         if (bassNote > 0) {
             // Shift arpeggio up by octaves if it gets too close to the bass range (within 12 semitones)
             while (targetNote <= bassNote + 12) {
@@ -1062,7 +1122,7 @@ class ArpGenerator {
             }
         }
 
-        // 5. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        // 7. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (Math.random() * 100 < mutationRate) {
             // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
@@ -1071,7 +1131,7 @@ class ArpGenerator {
             isMutated = true;
         }
 
-        // 6. Advanced Accent & Velocity Modeling
+        // 8. Advanced Accent & Velocity Modeling
         let velocity = 85;
         let isGhost = false;
 
@@ -1079,15 +1139,15 @@ class ArpGenerator {
         const isTense = chord.quality.includes("alt") || chord.quality.includes("sharp11") || chord.quality.includes("dim");
         const tensionMultiplier = isTense ? 1.15 : 1.00;
 
-        const isStructuralAccent = (step % 4 === 0);
+        const isStructuralAccent = (step % 4 === 0) || isForcedAccent;
         const isOffbeat = (step % 2 !== 0);
 
-        if (isStructuralAccent) {
+        if (isStructuralAccent && !isForcedGhost) {
             // Accent modeling using the custom accentLevel slider coefficient
-            const accentBoost = (accentLevel / 100) * 30;
+            const accentBoost = (accentLevel / 100) * 35;
             velocity = Math.floor((100 + accentBoost) * tensionMultiplier);
-        } else if (isOffbeat && (Math.random() * 100 < ghostChance)) {
-            // Ghost note triggered on offbeats
+        } else if (isForcedGhost || (isOffbeat && (Math.random() * 100 < ghostChance))) {
+            // Ghost note triggered
             velocity = Math.floor((15 + Math.random() * 20) * tensionMultiplier);
             isGhost = true;
         } else {
@@ -1096,8 +1156,13 @@ class ArpGenerator {
             velocity = Math.floor(normalBase * tensionMultiplier);
         }
 
-        // Add small humanizing velocity jitter
-        velocity += Math.floor((Math.random() - 0.5) * 12);
+        // 9. Custom Velocity Randomness Slider Influence
+        if (velocityRandomness > 0) {
+            const maxJitter = (velocityRandomness / 100) * 45;
+            const jitter = Math.floor((Math.random() - 0.5) * 2 * maxJitter);
+            velocity += jitter;
+        }
+
         velocity = Math.max(5, Math.min(127, velocity));
 
         this.index++;
@@ -2008,18 +2073,29 @@ function scheduleStep(stepIndex, time) {
 
     // 3. Process arpeggiation triggers with variable tempo multipliers and bass context tracking
     const arpTempoMultiplier = barPattern.arp[activeStepInBar] || 0;
-    if (arpTempoMultiplier > 0) {
+
+    // Position half-time early skip logic before executing any generator index steps
+    let shouldSkipArp = false;
+    if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
+        shouldSkipArp = true;
+    }
+
+    if (arpTempoMultiplier > 0 && !shouldSkipArp) {
         const order = document.getElementById("selectArpOrder").value;
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
 
-        // Fetch new advanced generative arpeggiator parameter values
+        // Fetch advanced generative arpeggiator parameter values including the new ones
         const density = parseInt(document.getElementById("sliderArpDensity").value);
         const accentLevel = parseInt(document.getElementById("sliderAccentScaling").value);
         const mutationRate = parseInt(document.getElementById("sliderArpMutation").value);
         const humanizeMs = parseInt(document.getElementById("sliderArpHumanize").value);
         const gatePerc = parseInt(document.getElementById("sliderArpGate").value);
         const octStyle = document.getElementById("selectOctaveStyle").value;
+
+        const velocityRandomness = parseInt(document.getElementById("sliderArpVelocityRand").value || "15");
+        const spread = parseInt(document.getElementById("selectArpSpread").value || "0");
+        const rhythmMode = document.getElementById("selectArpRhythmMode").value || "standard";
 
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
@@ -2033,11 +2109,14 @@ function scheduleStep(stepIndex, time) {
         const subdivisionSpacer = stepDurationSeconds / numSubdivisions;
 
         for (let sub = 0; sub < numSubdivisions; sub++) {
+            // Resolution-independent virtual step index scales sequence parameters correctly
+            const virtualStep = (activeStepInBar * numSubdivisions) + sub;
+
             // Predict the progression of the bass note into the next micro-intervals
             // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
-                activeStepInBar,
+                virtualStep,
                 order,
                 octaves,
                 ghost,
@@ -2045,14 +2124,11 @@ function scheduleStep(stepIndex, time) {
                 accentLevel,
                 mutationRate,
                 octStyle,
-                activeBassMidi
+                activeBassMidi,
+                velocityRandomness,
+                spread,
+                rhythmMode
             );
-
-            // Handle half-time tempo multiplier skip boundary check
-            if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
-                // In half-time mode, skip trigger processing on odd steps to keep arpeggio executing at half speed
-                continue;
-            }
 
             if (arpRes.trigger) {
                 const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
@@ -2383,7 +2459,8 @@ function bindUIEvents() {
         { id: "sliderAccentScaling", lbl: "lblAccentScaling", action: () => {} },
         { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
         { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
-        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} }
+        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} },
+        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
@@ -2410,10 +2487,18 @@ function bindUIEvents() {
         for (let b = 0; b < 4; b++) {
             // Populate interesting Euclidean grids across all 4 bars
             const bassEuclidean = Pattern.generateEuclidean(steps, 5 + b, b);
-            const arpEuclidean = Pattern.generateEuclidean(steps, 9 + b, (b + 1) % 4);
+            const arpEuclideanRaw = Pattern.generateEuclidean(steps, 9 + b, (b + 1) % 4);
 
             patternInstance.data[b].bass = bassEuclidean;
-            patternInstance.data[b].arp = arpEuclidean;
+
+            // Convert boolean Euclidean trigger states to valid arpeggiator numerical multipliers [1, 2, 3, 4, 0.5]
+            const multChoices = [1, 1, 2, 0.5];
+            patternInstance.data[b].arp = arpEuclideanRaw.map((trigger, idx) => {
+                if (trigger) {
+                    return multChoices[(idx + b) % multChoices.length];
+                }
+                return 0;
+            });
         }
         renderGrids();
     });
@@ -2426,7 +2511,14 @@ function bindUIEvents() {
                 barPattern.snare[i] = Math.random() > 0.85;
                 barPattern.hihat[i] = Math.random() > 0.65;
                 barPattern.bass[i] = Math.random() > 0.75;
-                barPattern.arp[i] = Math.random() > 0.7;
+
+                // Randomly choose from tempo multipliers instead of a boolean value
+                if (Math.random() > 0.7) {
+                    const multChoices = [1, 1, 2, 3, 4, 0.5];
+                    barPattern.arp[i] = multChoices[Math.floor(Math.random() * multChoices.length)];
+                } else {
+                    barPattern.arp[i] = 0;
+                }
             }
         }
         renderGrids();
