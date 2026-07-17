@@ -939,77 +939,152 @@ const midiManager = new MidiManager();
 
 
 // --- MODULE: complex/js/arp/arpGenerator.js ---
-// Complex, syncopated and velocity-mutated arpeggiator engine
+// Highly expressive, multi-algorithm generative arpeggiator engine
 class ArpGenerator {
     constructor() {
         this.index = 0;
     }
 
     /**
-     * Determines next arpeggiator note and velocity based on rhythm settings
+     * Determines next arpeggiator note, velocity, and timing trigger parameters.
      * @param {Object} chord - Current chord configuration
-     * @param {number} step - Current bar step index
-     * @param {string} order - Arp note arrangement rule ('updown', 'funky', 'brownian')
+     * @param {number} step - Current bar step index (0-15)
+     * @param {string} order - Arp note arrangement rule ('updown', 'funky', 'brownian', 'converge', 'retrograde', 'enclosure')
      * @param {number} octaves - Range of octave displacement (1-4)
      * @param {number} ghostChance - Percentage probability of triggering quiet ghost note (0-100)
+     * @param {number} density - Trigger density percentage (0-100)
+     * @param {number} accentLevel - Impact scaling of structural accents (0-100)
+     * @param {number} mutationRate - Probability of mutating a note to a dynamic passing/outside tone (0-100)
+     * @param {string} octStyle - Octave jumping style ('linear', 'alternate', 'random', 'fixed')
      */
-    getNextNote(chord, step, order = "updown", octaves = 2, ghostChance = 20) {
-        if (!chord || !chord.notes || chord.notes.length === 0) return { note: 60, velocity: 0 };
+    getNextNote(
+        chord,
+        step,
+        order = "updown",
+        octaves = 2,
+        ghostChance = 20,
+        density = 100,
+        accentLevel = 50,
+        mutationRate = 15,
+        octStyle = "linear"
+    ) {
+        // Density filter: if random threshold is not met, do not trigger an active note event
+        if (Math.random() * 100 > density) {
+            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+        }
+
+        if (!chord || !chord.notes || chord.notes.length === 0) {
+            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+        }
 
         const notes = chord.notes;
+        const len = notes.length;
         let noteIdx = 0;
 
+        // 1. Core Pattern/Arrangement Ordering Algorithms
         if (order === "updown") {
-            const cycle = (notes.length * 2) - 2;
+            const cycle = (len * 2) - 2;
             const pos = this.index % Math.max(1, cycle);
-            noteIdx = pos < notes.length ? pos : cycle - pos;
+            noteIdx = pos < len ? pos : cycle - pos;
         } else if (order === "brownian") {
             // Random step walk +/- 1 index
             const stepChange = Math.random() > 0.5 ? 1 : -1;
-            noteIdx = Math.abs((this.index + stepChange) % notes.length);
+            noteIdx = Math.abs((this.index + stepChange) % len);
             this.index = noteIdx;
         } else if (order === "funky") {
-            // Skips indexes on 16th boundaries with jazzy Syncopation
-            noteIdx = (this.index * 3 + (step % 3)) % notes.length;
+            // Syncopated jumps mapping chord tones dynamically
+            noteIdx = (this.index * 3 + (step % 3)) % len;
+        } else if (order === "converge") {
+            // Starts from extremes (lowest, highest, second lowest, second highest...)
+            const cycleIdx = this.index % len;
+            if (cycleIdx % 2 === 0) {
+                noteIdx = Math.floor(cycleIdx / 2);
+            } else {
+                noteIdx = len - 1 - Math.floor(cycleIdx / 2);
+            }
+        } else if (order === "retrograde") {
+            // Exact reversed playback of chord tones
+            noteIdx = (len - 1 - (this.index % len)) % len;
+        } else if (order === "enclosure") {
+            // Cycles standard indexes but resolves using dynamic enclosure
+            noteIdx = this.index % len;
         }
 
-        let targetNote = notes[noteIdx];
+        let targetNote = notes[noteIdx] || notes[0];
 
-        // Displace note octave based on step boundaries
-        const octOffset = Math.floor(step / 4) % octaves;
+        // 2. Chromatic / Bebop Passing Enclosures
+        if (order === "enclosure" && len > 1) {
+            // Wrap the target note using a 3-step chromatic enclosure
+            const encStep = step % 3;
+            if (encStep === 0) {
+                targetNote += 1; // Upper chromatic neighbor
+            } else if (encStep === 1) {
+                targetNote -= 1; // Lower chromatic neighbor
+            }
+            // encStep === 2 resolves perfectly to the chord tone
+        }
+
+        // 3. Dynamic Octave Jumping Styles
+        let octOffset = 0;
+        const maxOct = Math.max(1, octaves);
+        if (octStyle === "linear") {
+            octOffset = Math.floor(step / 4) % maxOct;
+        } else if (octStyle === "alternate") {
+            octOffset = (step % 2 === 0) ? 0 : (maxOct - 1);
+        } else if (octStyle === "random") {
+            octOffset = Math.floor(Math.random() * maxOct);
+        } else if (octStyle === "fixed") {
+            octOffset = 0;
+        }
+
         targetNote += octOffset * 12;
 
-        // Accent modeling & syncopated velocity calculation
-        let velocity = 100;
+        // 4. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        let isMutated = false;
+        if (Math.random() * 100 < mutationRate) {
+            // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
+            const mutationInterval = Math.random() > 0.5 ? 2 : -1;
+            targetNote += mutationInterval;
+            isMutated = true;
+        }
+
+        // 5. Advanced Accent & Velocity Modeling
+        let velocity = 85;
         let isGhost = false;
 
-        // Higher tension chords get wider velocity range
+        // Base velocity range influenced by chord tension parameters
         const isTense = chord.quality.includes("alt") || chord.quality.includes("sharp11") || chord.quality.includes("dim");
-        const tensionMod = isTense ? 1.2 : 1.0;
+        const tensionMultiplier = isTense ? 1.15 : 1.00;
 
-        if (step % 4 === 0) {
-            velocity = Math.floor(115 * tensionMod); // Structural accents
-        } else if (step % 2 !== 0) {
-            // Check for potential ghost note placement on syncopated off-beats
-            if (Math.random() * 100 < ghostChance) {
-                velocity = Math.floor((15 + Math.random() * 25) * tensionMod);
-                isGhost = true;
-            } else {
-                velocity = Math.floor(80 * tensionMod);
-            }
+        const isStructuralAccent = (step % 4 === 0);
+        const isOffbeat = (step % 2 !== 0);
+
+        if (isStructuralAccent) {
+            // Accent modeling using the custom accentLevel slider coefficient
+            const accentBoost = (accentLevel / 100) * 30;
+            velocity = Math.floor((100 + accentBoost) * tensionMultiplier);
+        } else if (isOffbeat && (Math.random() * 100 < ghostChance)) {
+            // Ghost note triggered on offbeats
+            velocity = Math.floor((15 + Math.random() * 20) * tensionMultiplier);
+            isGhost = true;
         } else {
-            velocity = Math.floor(95 * tensionMod);
+            // Normal intermediate step
+            const normalBase = 80 + (1.0 - (accentLevel / 100)) * 10;
+            velocity = Math.floor(normalBase * tensionMultiplier);
         }
 
         // Add small humanizing velocity jitter
-        velocity += Math.floor((Math.random() - 0.5) * 15);
+        velocity += Math.floor((Math.random() - 0.5) * 12);
         velocity = Math.max(5, Math.min(127, velocity));
 
         this.index++;
+
         return {
             note: targetNote,
             velocity,
-            isGhost
+            isGhost,
+            isMutated,
+            trigger: true
         };
     }
 }
@@ -1194,9 +1269,11 @@ class Synthesizer {
      * Synthesizes an analog-style plucked note using sub-oscillators and multi-mode filtering
      * @param {number} frequency - Target frequency of the note
      * @param {number} time - AudioContext timeline schedule moment
-     * @param {number} duration - Lifespan of the note
+     * @param {number} dynamicGain - Dynamic gain scalar based on velocity (0.0 - 1.0)
+     * @param {number} durationMultiplier - Length modification coefficient
      */
-    triggerSubtractivePluck(frequency, time, duration = 0.25) {
+    triggerSubtractivePluck(frequency, time, dynamicGain = 0.25, durationMultiplier = 1.0) {
+        const duration = 0.25 * durationMultiplier;
         const osc1 = this.ctx.createOscillator();
         const osc2 = this.ctx.createOscillator();
         const gainNode = this.ctx.createGain();
@@ -1217,7 +1294,7 @@ class Synthesizer {
         filterNode.frequency.exponentialRampToValueAtTime(300, time + duration);
 
         gainNode.gain.setValueAtTime(0.001, time);
-        gainNode.gain.linearRampToValueAtTime(0.3, time + 0.005);
+        gainNode.gain.linearRampToValueAtTime(dynamicGain, time + 0.005);
         gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         osc1.connect(filterNode);
@@ -1234,7 +1311,8 @@ class Synthesizer {
     /**
      * Synthesizes a frequency-modulation (FM) pluck with sharp attack
      */
-    triggerFmPluck(frequency, time, duration = 0.2) {
+    triggerFmPluck(frequency, time, dynamicGain = 0.22, durationMultiplier = 1.0) {
+        const duration = 0.20 * durationMultiplier;
         const carrier = this.ctx.createOscillator();
         const modulator = this.ctx.createOscillator();
         const carrierGain = this.ctx.createGain();
@@ -1252,7 +1330,7 @@ class Synthesizer {
         modGain.gain.exponentialRampToValueAtTime(10, time + duration);
 
         carrierGain.gain.setValueAtTime(0.001, time);
-        carrierGain.gain.linearRampToValueAtTime(0.25, time + 0.005);
+        carrierGain.gain.linearRampToValueAtTime(dynamicGain, time + 0.005);
         carrierGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         modulator.connect(modGain);
@@ -1869,17 +1947,48 @@ function scheduleStep(stepIndex, time) {
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
 
-        const arpRes = arpGenerator.getNextNote(activeChord, activeStepInBar, order, octaves, ghost);
-        const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
+        // Fetch new advanced generative arpeggiator parameter values
+        const density = parseInt(document.getElementById("sliderArpDensity").value);
+        const accentLevel = parseInt(document.getElementById("sliderAccentScaling").value);
+        const mutationRate = parseInt(document.getElementById("sliderArpMutation").value);
+        const humanizeMs = parseInt(document.getElementById("sliderArpHumanize").value);
+        const gatePerc = parseInt(document.getElementById("sliderArpGate").value);
+        const octStyle = document.getElementById("selectOctaveStyle").value;
 
-        const soundStyle = document.getElementById("selectArpSound").value;
-        if (soundStyle === "fm") {
-            synth.triggerFmPluck(tuningFreq, time, 0.22);
-        } else if (soundStyle === "subtractive") {
-            synth.triggerSubtractivePluck(tuningFreq, time, 0.25);
-        } else {
-            // Sine simple waves pluck
-            synth.triggerFmPluck(tuningFreq * 2.0, time, 0.15);
+        const arpRes = arpGenerator.getNextNote(
+            activeChord,
+            activeStepInBar,
+            order,
+            octaves,
+            ghost,
+            density,
+            accentLevel,
+            mutationRate,
+            octStyle
+        );
+
+        if (arpRes.trigger) {
+            const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
+            const soundStyle = document.getElementById("selectArpSound").value;
+
+            // Compute humanized micro-timing delay (seconds)
+            const humanizedDelay = (Math.random() * humanizeMs) / 1000.0;
+            const triggerTime = time + humanizedDelay;
+
+            // Calculate duration multiplier based on gate ratio (defaults to standard plucks)
+            const gateMultiplier = gatePerc / 100.0;
+
+            // Trigger voices with dynamic velocity and gate parameters
+            const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
+
+            if (soundStyle === "fm") {
+                synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+            } else if (soundStyle === "subtractive") {
+                synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+            } else {
+                // Sine simple waves pluck
+                synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+            }
         }
     }
 
@@ -2078,7 +2187,12 @@ function bindUIEvents() {
         { id: "sliderBassBias", lbl: "lblBassBias", action: () => {} },
         { id: "sliderArpOctaves", lbl: "lblArpOctaves", action: () => {} },
         { id: "sliderGhostChance", lbl: "lblGhostChance", action: () => {} },
-        { id: "sliderMutationChance", lbl: "lblMutationChance", action: () => {} }
+        { id: "sliderMutationChance", lbl: "lblMutationChance", action: () => {} },
+        { id: "sliderArpDensity", lbl: "lblArpDensity", action: () => {} },
+        { id: "sliderAccentScaling", lbl: "lblAccentScaling", action: () => {} },
+        { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
+        { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
+        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {

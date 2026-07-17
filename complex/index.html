@@ -311,6 +311,9 @@
                             <option value="updown" selected>Up & Down Walk</option>
                             <option value="funky">Funky Disjointed Index</option>
                             <option value="brownian">Brownian Step Walk</option>
+                            <option value="converge">Converge / Diverge</option>
+                            <option value="retrograde">Retrograde (Reversed)</option>
+                            <option value="enclosure">Chord Tone Enclosure</option>
                         </select>
                     </div>
                 </div>
@@ -332,6 +335,45 @@
                     <div class="control-group">
                         <label>Rhythm Mutation <span id="lblMutationChance">15</span>%</label>
                         <input type="range" id="sliderMutationChance" min="0" max="100" value="15">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Advanced Arpeggiator Generative Controls</div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Arp Density <span id="lblArpDensity">100</span>%</label>
+                        <input type="range" id="sliderArpDensity" min="0" max="100" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Accent Scaling <span id="lblAccentScaling">50</span>%</label>
+                        <input type="range" id="sliderAccentScaling" min="0" max="100" value="50">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Passing Mutation <span id="lblArpMutation">15</span>%</label>
+                        <input type="range" id="sliderArpMutation" min="0" max="100" value="15">
+                    </div>
+                    <div class="control-group">
+                        <label>Micro-Timing <span id="lblArpHumanize">0</span>ms</label>
+                        <input type="range" id="sliderArpHumanize" min="0" max="50" value="0">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Gate Length <span id="lblArpGate">80</span>%</label>
+                        <input type="range" id="sliderArpGate" min="10" max="150" value="80">
+                    </div>
+                    <div class="control-group">
+                        <label>Octave Jump Style</label>
+                        <select id="selectOctaveStyle">
+                            <option value="linear" selected>Linear (Ascending)</option>
+                            <option value="alternate">Alternate Back-Forth</option>
+                            <option value="random">Fractured Random</option>
+                            <option value="fixed">Fixed Octave</option>
+                        </select>
                     </div>
                 </div>
             </div>

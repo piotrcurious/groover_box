@@ -11,9 +11,11 @@ export class Synthesizer {
      * Synthesizes an analog-style plucked note using sub-oscillators and multi-mode filtering
      * @param {number} frequency - Target frequency of the note
      * @param {number} time - AudioContext timeline schedule moment
-     * @param {number} duration - Lifespan of the note
+     * @param {number} dynamicGain - Dynamic gain scalar based on velocity (0.0 - 1.0)
+     * @param {number} durationMultiplier - Length modification coefficient
      */
-    triggerSubtractivePluck(frequency, time, duration = 0.25) {
+    triggerSubtractivePluck(frequency, time, dynamicGain = 0.25, durationMultiplier = 1.0) {
+        const duration = 0.25 * durationMultiplier;
         const osc1 = this.ctx.createOscillator();
         const osc2 = this.ctx.createOscillator();
         const gainNode = this.ctx.createGain();
@@ -34,7 +36,7 @@ export class Synthesizer {
         filterNode.frequency.exponentialRampToValueAtTime(300, time + duration);
 
         gainNode.gain.setValueAtTime(0.001, time);
-        gainNode.gain.linearRampToValueAtTime(0.3, time + 0.005);
+        gainNode.gain.linearRampToValueAtTime(dynamicGain, time + 0.005);
         gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         osc1.connect(filterNode);
@@ -51,7 +53,8 @@ export class Synthesizer {
     /**
      * Synthesizes a frequency-modulation (FM) pluck with sharp attack
      */
-    triggerFmPluck(frequency, time, duration = 0.2) {
+    triggerFmPluck(frequency, time, dynamicGain = 0.22, durationMultiplier = 1.0) {
+        const duration = 0.20 * durationMultiplier;
         const carrier = this.ctx.createOscillator();
         const modulator = this.ctx.createOscillator();
         const carrierGain = this.ctx.createGain();
@@ -69,7 +72,7 @@ export class Synthesizer {
         modGain.gain.exponentialRampToValueAtTime(10, time + duration);
 
         carrierGain.gain.setValueAtTime(0.001, time);
-        carrierGain.gain.linearRampToValueAtTime(0.25, time + 0.005);
+        carrierGain.gain.linearRampToValueAtTime(dynamicGain, time + 0.005);
         carrierGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
         modulator.connect(modGain);

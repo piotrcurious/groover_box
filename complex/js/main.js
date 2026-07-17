@@ -170,17 +170,48 @@ function scheduleStep(stepIndex, time) {
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
 
-        const arpRes = arpGenerator.getNextNote(activeChord, activeStepInBar, order, octaves, ghost);
-        const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
+        // Fetch new advanced generative arpeggiator parameter values
+        const density = parseInt(document.getElementById("sliderArpDensity").value);
+        const accentLevel = parseInt(document.getElementById("sliderAccentScaling").value);
+        const mutationRate = parseInt(document.getElementById("sliderArpMutation").value);
+        const humanizeMs = parseInt(document.getElementById("sliderArpHumanize").value);
+        const gatePerc = parseInt(document.getElementById("sliderArpGate").value);
+        const octStyle = document.getElementById("selectOctaveStyle").value;
 
-        const soundStyle = document.getElementById("selectArpSound").value;
-        if (soundStyle === "fm") {
-            synth.triggerFmPluck(tuningFreq, time, 0.22);
-        } else if (soundStyle === "subtractive") {
-            synth.triggerSubtractivePluck(tuningFreq, time, 0.25);
-        } else {
-            // Sine simple waves pluck
-            synth.triggerFmPluck(tuningFreq * 2.0, time, 0.15);
+        const arpRes = arpGenerator.getNextNote(
+            activeChord,
+            activeStepInBar,
+            order,
+            octaves,
+            ghost,
+            density,
+            accentLevel,
+            mutationRate,
+            octStyle
+        );
+
+        if (arpRes.trigger) {
+            const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
+            const soundStyle = document.getElementById("selectArpSound").value;
+
+            // Compute humanized micro-timing delay (seconds)
+            const humanizedDelay = (Math.random() * humanizeMs) / 1000.0;
+            const triggerTime = time + humanizedDelay;
+
+            // Calculate duration multiplier based on gate ratio (defaults to standard plucks)
+            const gateMultiplier = gatePerc / 100.0;
+
+            // Trigger voices with dynamic velocity and gate parameters
+            const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
+
+            if (soundStyle === "fm") {
+                synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+            } else if (soundStyle === "subtractive") {
+                synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+            } else {
+                // Sine simple waves pluck
+                synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+            }
         }
     }
 
@@ -379,7 +410,12 @@ function bindUIEvents() {
         { id: "sliderBassBias", lbl: "lblBassBias", action: () => {} },
         { id: "sliderArpOctaves", lbl: "lblArpOctaves", action: () => {} },
         { id: "sliderGhostChance", lbl: "lblGhostChance", action: () => {} },
-        { id: "sliderMutationChance", lbl: "lblMutationChance", action: () => {} }
+        { id: "sliderMutationChance", lbl: "lblMutationChance", action: () => {} },
+        { id: "sliderArpDensity", lbl: "lblArpDensity", action: () => {} },
+        { id: "sliderAccentScaling", lbl: "lblAccentScaling", action: () => {} },
+        { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
+        { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
+        { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
