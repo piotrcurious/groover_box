@@ -578,6 +578,22 @@
             </div>
 
             <div class="control-group">
+                <label>Harmonic progression Algorithm</label>
+                <select id="progStyle">
+                    <option value="jazz_standards" selected>Classic Jazz Standard Cycle</option>
+                    <option value="circle_fifths">Circle of Fifths Backwards Walk</option>
+                    <option value="modal_interchange">Modal Interchange (Parallel Borrowing)</option>
+                    <option value="coltrane_changes">Coltrane Changes (Multi-Tonic 3rds)</option>
+                    <option value="line_cliche">Line Cliché (Chromatic Walkdown)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Tension & Dissonance Level: <span id="tensionVal">60%</span></label>
+                <input type="range" id="tensionLevel" min="0" max="100" value="60">
+            </div>
+
+            <div class="control-group">
                 <label>Tense Bridge Scale</label>
                 <select id="bridgeChordType">
                     <option value="hirajoshi" selected>Hirajoshi Pentatonic (Dark Tension)</option>
@@ -585,6 +601,29 @@
                     <option value="tritone">Tritone-Shifted Minor Pentatonic</option>
                     <option value="insen">Insen Pentatonic (Melancholic Tension)</option>
                 </select>
+            </div>
+
+            <div class="control-group">
+                <label>Bridge Root Key Interval</label>
+                <select id="bridgeInterval">
+                    <option value="6" selected>Tritone (+6 semitones)</option>
+                    <option value="3">Minor 3rd (+3 semitones)</option>
+                    <option value="1">Half-Step Up (+1 semitone)</option>
+                    <option value="7">Perfect 5th (+7 semitones)</option>
+                    <option value="8">Minor 6th (+8 semitones)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Generative Mutation Rate: <span id="mutationVal">20%</span></label>
+                <input type="range" id="mutationRate" min="0" max="100" value="20">
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="secondaryDominants" style="width: auto; margin: 0;" checked>
+                    <span>Inject Secondary Dominants</span>
+                </label>
             </div>
 
             <div class="control-group">
@@ -824,11 +863,47 @@
         return notesArray[midiVal % 12] + (Math.floor(midiVal / 12) - 1);
     }
 
+    // Enhanced Progression & Chords Logic
+    function getExtensionsForBase(baseMidi, tensionPercent) {
+        // Base intervals: Root, Major 3rd (or min 3rd if m7b5), Perfect 5th (or b5), Major/Minor 7th
+        let intervals = [0, 4, 7, 11]; // default Major 7th
+        const baseType = document.getElementById('baseChordType').value;
+        if (baseType === 'm7b5') {
+            intervals = [0, 3, 6, 10];
+        } else if (baseType === '7#11') {
+            intervals = [0, 4, 7, 10];
+        }
+
+        // Add extensions dynamically according to tension Level
+        if (tensionPercent > 15) {
+            // Add 9th
+            let ninth = (baseType === 'm7b5') ? 13 : 14;
+            intervals.push(ninth);
+        }
+        if (tensionPercent > 45) {
+            // Add 11th / #11th
+            let eleventh = (baseType === 'maj7#11' || baseType === '7#11') ? 18 : 17;
+            intervals.push(eleventh);
+        }
+        if (tensionPercent > 75) {
+            // Add complex flat 13 or augmented 9th alterations
+            intervals.push(20); // flat 13 / aug 5
+            intervals.push(15); // flat 9 for dominants
+        }
+
+        return intervals.map(i => baseMidi + i);
+    }
+
     // Interval list generator
     function generateJourney() {
         const root = parseInt(document.getElementById('rootKey').value);
+        const progStyle = document.getElementById('progStyle').value;
         const baseType = document.getElementById('baseChordType').value;
+        const tensionPercent = parseFloat(document.getElementById('tensionLevel').value);
         const bridgeType = document.getElementById('bridgeChordType').value;
+        const bridgeInterval = parseInt(document.getElementById('bridgeInterval').value);
+        const mutationRate = parseFloat(document.getElementById('mutationRate').value) / 100;
+        const useSecondaryDominants = document.getElementById('secondaryDominants').checked;
         const bridgeFreq = parseInt(document.getElementById('bridgeFreq').value);
         const bridgeDuration = parseInt(document.getElementById('bridgeDuration').value);
 
@@ -838,70 +913,124 @@
             let explanation = "";
             let isBridge = false;
 
-            // Determine if this is a bridge bar based on bridgeFreq and bridgeDuration
-            // e.g. if frequency is 4 and duration is 2, bars 3 & 4 (indices 2 & 3) or 7 & 8 are bridges
+            // 1. Check if this is a bridge bar
             let cycle = b % bridgeFreq;
             if (cycle >= (bridgeFreq - bridgeDuration) && bridgeFreq > bridgeDuration) {
                 isBridge = true;
             } else if (bridgeFreq <= bridgeDuration) {
-                // Edge case: if duration matches or exceeds frequency, alternate evenly
                 isBridge = (b % 2 === 1);
             }
 
+            // 2. Generate Bridge Chords
             if (isBridge) {
-                // Tense Pentatonic Bridge Chord
-                let bridgeRoot = (root + 6) % 12 + 48; // Tritone away
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48; // Flexible interval offset
                 let pNotes = [];
 
                 if (bridgeType === 'hirajoshi') {
-                    // Hirajoshi: 1, 2, b3, 5, b6 (semitones: 0, 2, 3, 7, 8)
                     pNotes = [0, 2, 3, 7, 8];
                     name = `${notesArray[bridgeRoot % 12]} Hirajoshi Pentatonic`;
-                    explanation = `Tense Japanese Hirajoshi scale over root ${notesArray[bridgeRoot % 12]}. Delivers high modal mystery and beautiful dark tension bridging back to the base.`;
+                    explanation = `Tense Japanese Hirajoshi scale over root ${notesArray[bridgeRoot % 12]}. Delivers high modal mystery and beautiful dark tension.`;
                 } else if (bridgeType === 'altered') {
-                    // Altered Pentatonic: 1, 3, b5, b6, b7 (semitones: 0, 4, 6, 8, 10)
                     pNotes = [0, 4, 6, 8, 10];
                     name = `${notesArray[bridgeRoot % 12]} Altered Pentatonic`;
                     explanation = `Altered pentatonic scale loaded with active tritone and altered tension points (Root, 3rd, #11/b5, b13, b7) targeting resolution.`;
                 } else if (bridgeType === 'tritone') {
-                    // Tritone Shifted: standard minor pentatonic built exactly a tritone away
                     pNotes = [0, 3, 5, 7, 10];
                     name = `${notesArray[bridgeRoot % 12]} Tritone-Shifted Minor Pentatonic`;
-                    explanation = `Maximum jazz dissonance using minor pentatonic constructed exactly a tritone (${notesArray[bridgeRoot % 12]}) away from home root.`;
+                    explanation = `Maximum jazz dissonance using minor pentatonic constructed exactly a tritone away from home root.`;
                 } else if (bridgeType === 'insen') {
-                    // Insen: 1, b2, 4, 5, b7 (semitones: 0, 1, 5, 7, 10)
                     pNotes = [0, 1, 5, 7, 10];
                     name = `${notesArray[bridgeRoot % 12]} Insen Pentatonic`;
                     explanation = `Traditional Insen pentatonic scale. Uses flat 2nd and perfect 4th intervals to construct a suspension of classical jazz expectations.`;
                 }
 
-                chordNotes = pNotes.map(interval => bridgeRoot + interval);
+                // Add higher octave copies for thicker bridge spacing if tension is high
+                if (tensionPercent > 50) {
+                    let topNotes = pNotes.map(interval => bridgeRoot + interval + 12);
+                    chordNotes = pNotes.map(interval => bridgeRoot + interval).concat(topNotes);
+                } else {
+                    chordNotes = pNotes.map(interval => bridgeRoot + interval);
+                }
+
             } else {
-                // Consonant Jazz Base Chords (containing beautiful tritones or pure high jazz extensions)
-                if (baseType === 'maj7#11') {
-                    // Lydian Maj7#11: 1, 3, 5, 7, #11 (semitones: 0, 4, 7, 11, 18)
-                    let pNotes = [0, 4, 7, 11, 18];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}maj7(#11)`;
-                    explanation = `Consonant Lydian chord. The tritone between Root (${notesArray[root % 12]}) and #11 (${notesArray[(root + 6) % 12]}) sounds majestic when framed inside a major 7th.`;
-                } else if (baseType === '7#11') {
-                    // Dominant 7#11: 1, 3, 5, b7, 9, #11 (semitones: 0, 4, 7, 10, 14, 18)
-                    let pNotes = [0, 4, 7, 10, 14, 18];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}9(#11) Dominant`;
-                    explanation = `A complex dominant chord housing dual active tritones. Energetic, bluesy, and serves as an exceptional landing zone for tension.`;
-                } else if (baseType === 'm7b5') {
-                    // Half-diminished: 1, b3, b5, b7 (semitones: 0, 3, 6, 10)
-                    let pNotes = [0, 3, 6, 10, 14]; // added 9th
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}m7(b5) Half-Dim`;
-                    explanation = `Dark, minor-modal consonant chord. Tritone exists between Root and b5, creating a gorgeous classic bebop foundation.`;
-                } else if (baseType === 'maj9') {
-                    // Major 9: 1, 3, 5, 7, 9 (semitones: 0, 4, 7, 11, 14)
-                    let pNotes = [0, 4, 7, 11, 14];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}maj9`;
-                    explanation = `Smooth, highly consonant jazz chord providing a stable, pure home base.`;
+                // 3. Generate Consonant Base Progression Loop
+                let subBar = b % 8; // progression length loops
+                let currentRoot = root;
+                let scaleDegreeName = "I";
+
+                // Secondary Dominants injection (e.g., bar before target is forced to V/target)
+                let makeSecondaryDominant = false;
+                let targetRoot = root;
+
+                if (useSecondaryDominants && (subBar === 1 || subBar === 3 || subBar === 5 || subBar === 7)) {
+                    makeSecondaryDominant = true;
+                }
+
+                if (progStyle === 'jazz_standards') {
+                    // Classic Jazz Standard: I - vi - ii - V - iii - vi - ii - V
+                    let degrees = [0, 9, 2, 7, 4, 9, 2, 7];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "vi", "ii", "V", "iii", "vi", "ii", "V"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+                } else if (progStyle === 'circle_fifths') {
+                    // Circle of Fifths: I - IV - vii - iii - vi - ii - V - I
+                    let degrees = [0, 5, 11, 4, 9, 2, 7, 0];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "IV", "viiø", "iii", "vi", "ii", "V", "I"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+                } else if (progStyle === 'modal_interchange') {
+                    // Modal Interchange (Borrowing from minor): I - bVI - bVII - I - iv - bIII - bVI - bVII
+                    let degrees = [0, 8, 10, 0, 5, 3, 8, 10];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "bVI (Aeolian)", "bVII (Mixolydian)", "I", "iv (Minor iv)", "bIII (Relative Major)", "bVI", "bVII"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+                } else if (progStyle === 'coltrane_changes') {
+                    // Coltrane Changes (Giant Steps multi-tonic matrix shifting by Major 3rds)
+                    // I - bVI - bIV - bII - V - bVI - ii - V
+                    let degrees = [0, 8, 4, 1, 7, 8, 2, 7];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I (Tonic C)", "bVI (Tonic Ab)", "bIV (Tonic E)", "bII", "V", "bVI", "ii", "V"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+                } else if (progStyle === 'line_cliche') {
+                    // Line Cliché (Chromatic Walkdown in minor/major): I - I(maj7) - I(7) - I(6) - IV - iv - V - I
+                    let degrees = [0, 0, 0, 0, 5, 5, 7, 0];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "I(maj7)", "I(7)", "I(6)", "IV", "iv", "V", "I"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+                }
+
+                // If making secondary dominant, override currentRoot to be perfect 5th of next bar's root target
+                if (makeSecondaryDominant) {
+                    currentRoot = (targetRoot + 7) % 12;
+                    scaleDegreeName = `V / ${notesArray[targetRoot]}`;
+                }
+
+                // Generative mutation probability (periodically swaps chord to tritone substitute or relative minor/major)
+                let mutated = false;
+                if (Math.random() < mutationRate && !makeSecondaryDominant) {
+                    // Tritone Substitution!
+                    currentRoot = (currentRoot + 6) % 12;
+                    scaleDegreeName = `SubV (Tritone Sub)`;
+                    mutated = true;
+                }
+
+                // 4. Voicing / Chord generation
+                let baseMidi = currentRoot + 48;
+                chordNotes = getExtensionsForBase(baseMidi, tensionPercent);
+
+                // Build name and descriptor details
+                let labelPrefix = mutated ? "[Mutated] " : "";
+                if (makeSecondaryDominant) {
+                    name = `${labelPrefix}${notesArray[currentRoot]}7 (Secondary Dominant)`;
+                    explanation = `Secondary dominant V chord built over ${notesArray[currentRoot]} to pull aggressively toward the upcoming ${notesArray[targetRoot]} chord in the jazz cycle.`;
+                } else {
+                    name = `${labelPrefix}${notesArray[currentRoot]} ${baseType.toUpperCase()} (${scaleDegreeName})`;
+                    explanation = `Algorithmically generated ${scaleDegreeName} base chord using the ${progStyle.toUpperCase()} matrix. Voiced with ${chordNotes.length} notes according to the tension level (${tensionPercent.toFixed(0)}%).`;
                 }
             }
 
@@ -1592,6 +1721,14 @@
     // Dynamic Parameter Listeners
     document.getElementById('bpm').addEventListener('input', (e) => {
         document.getElementById('bpmVal').innerText = e.target.value;
+    });
+
+    document.getElementById('tensionLevel').addEventListener('input', (e) => {
+        document.getElementById('tensionVal').innerText = e.target.value + "%";
+    });
+
+    document.getElementById('mutationRate').addEventListener('input', (e) => {
+        document.getElementById('mutationVal').innerText = e.target.value + "%";
     });
 
     document.getElementById('masterVol').addEventListener('input', (e) => {
