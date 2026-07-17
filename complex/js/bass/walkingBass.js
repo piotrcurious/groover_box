@@ -38,25 +38,35 @@ export class WalkingBass {
             } else if (style === "tritone") {
                 // Approaching via tritone interval (b5 resolution)
                 return targetRoot + 6;
+            } else {
+                // Standard leading tone (half-step below)
+                return targetRoot - 1;
             }
         }
 
         // Mid-beats steps: traverse chord scales using chosen stylistic algorithms
         if (style === "bebop") {
-            // Bebop Major scale interval: 0, 2, 4, 5, 7, 8, 9, 11
+            // Bebop scale walking: construct steps relative to chord's root, moving up/down dynamically
             const bebopOffsets = [0, 2, 4, 5, 7, 8, 9, 11];
-            const stepOffset = bebopOffsets[step % bebopOffsets.length];
-            return bassRoot + stepOffset;
+            // Walk up or down based on step number
+            const dir = (step % 8 < 4) ? 1 : -1;
+            const offsetIdx = Math.floor(step * 1.5) % bebopOffsets.length;
+            const note = bassRoot + (dir * bebopOffsets[offsetIdx]);
+
+            // Constrain bass note to realistic frequency range (midi 28 to 52)
+            return Math.max(28, Math.min(52, note));
         }
 
         if (style === "diminished") {
             // Half-whole diminished: 0, 1, 3, 4, 6, 7, 9, 10
             const dimOffsets = [0, 1, 3, 4, 6, 7, 9, 10];
-            const stepOffset = dimOffsets[step % dimOffsets.length];
-            return bassRoot + stepOffset;
+            const dir = (step % 6 < 3) ? 1 : -1;
+            const offsetIdx = step % dimOffsets.length;
+            const note = bassRoot + (dir * dimOffsets[offsetIdx]);
+            return Math.max(28, Math.min(52, note));
         }
 
-        // Fallback default: select chord notes walk (root, third, fifth, seventh)
+        // Fallback default: select chord notes walk (root, third, fifth, seventh) with small octave shifts
         const noteIdx = Math.floor((step / 4) % chordNotes.length);
         const selectedNote = chordNotes[noteIdx] - 24;
 

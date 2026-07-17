@@ -13,6 +13,7 @@ export class JazzProgression {
 
     /**
      * Dynamically plans and generates a full 64-bar jazz chord progression
+     * with long-range structural planning (modulation, tension arcs, and turnarounds).
      * @param {number} root - Base Root MIDI Note Center (e.g. 60 for C)
      * @param {string} style - Stylistic goal configuration
      * @param {number} jazzPerc - Slider value 0-100 indicating jazz density
@@ -27,42 +28,82 @@ export class JazzProgression {
 
         for (let b = 0; b < 64; b++) {
             const candidates = [];
-            const subBar = b % 4; // loop structures inside a 4-bar unit
+            const subBar = b % 4; // micro-structure loop inside a 4-bar unit
+            const section = Math.floor(b / 16); // 0: A1 (Exposition), 1: A2 (Modulation), 2: B (Outside/Modal), 3: A3 (Turnaround/Resolution)
+
+            // Calculate section-specific base keys
+            let localRoot = root;
+            if (section === 1) {
+                // Modulate up a perfect fourth (Subdominant modulation - classic jazz/pop standard structure)
+                localRoot = (root + 5) % 12 + 48;
+            } else if (section === 2) {
+                // Modulate to the relative minor / modal shift (Darker section)
+                localRoot = (root + 9) % 12 + 48;
+            }
 
             if (subBar === 0) {
                 // I chord candidates (Tonic center)
-                candidates.push({ root, quality: "maj9", name: `${this.getNoteName(root)}maj9`, type: "tonic" });
-                candidates.push({ root, quality: "maj13", name: `${this.getNoteName(root)}maj13`, type: "tonic" });
-                // Modal Interchange tonic
-                const minRoot = (root + 9) % 12 + 48; // vi relative minor
-                candidates.push({ root: minRoot, quality: "min9", name: `${this.getNoteName(minRoot)}min9`, type: "tonic" });
+                candidates.push({ root: localRoot, quality: "maj9", name: `${this.getNoteName(localRoot)}maj9`, type: "tonic" });
+                candidates.push({ root: localRoot, quality: "maj13", name: `${this.getNoteName(localRoot)}maj13`, type: "tonic" });
+
+                if (jazzPerc > 50) {
+                    candidates.push({ root: localRoot, quality: "maj7sharp11", name: `${this.getNoteName(localRoot)}maj7#11 (Lydian)`, type: "tonic" });
+                }
+
+                // Modal Interchange tonic from parallel minor
+                if (style === "dark" || outsidePerc > 30) {
+                    const minRoot = localRoot;
+                    candidates.push({ root: minRoot, quality: "min9", name: `${this.getNoteName(minRoot)}min9 (Parallel Minor)`, type: "tonic" });
+                }
             } else if (subBar === 1) {
-                // vi chord candidates
-                const viRoot = (root + 9) % 12 + 48;
-                candidates.push({ root: viRoot, quality: "min9", name: `${this.getNoteName(viRoot)}min9`, type: "subdominant" });
+                // vi / secondary dominant candidates (Tension building)
+                const viRoot = (localRoot + 9) % 12 + 48;
+                candidates.push({ root: viRoot, quality: "min9", name: `${this.getNoteName(viRoot)}min9 (vi)`, type: "subdominant" });
                 candidates.push({ root: viRoot, quality: "min11", name: `${this.getNoteName(viRoot)}min11`, type: "subdominant" });
-                // Secondary Dominant of ii
-                const secDomRoot = (root + 9) % 12 + 48; // VI7
-                candidates.push({ root: secDomRoot, quality: "dom7alt", name: `${this.getNoteName(secDomRoot)}7alt (VI7)`, type: "subdominant" });
+
+                // Secondary Dominant of ii (VI7alt)
+                if (jazzPerc > 40) {
+                    const secDomRoot = (localRoot + 9) % 12 + 48; // VI7
+                    candidates.push({ root: secDomRoot, quality: "dom7alt", name: `${this.getNoteName(secDomRoot)}7alt (VI7)`, type: "subdominant" });
+                }
             } else if (subBar === 2) {
                 // ii chord candidates (Subdominant)
-                const iiRoot = (root + 2) % 12 + 48;
-                candidates.push({ root: iiRoot, quality: "min7", name: `${this.getNoteName(iiRoot)}min7`, type: "subdominant" });
-                candidates.push({ root: iiRoot, quality: "min9", name: `${this.getNoteName(iiRoot)}min9`, type: "subdominant" });
+                const iiRoot = (localRoot + 2) % 12 + 48;
+                candidates.push({ root: iiRoot, quality: "min7", name: `${this.getNoteName(iiRoot)}min7 (ii)`, type: "subdominant" });
+                candidates.push({ root: iiRoot, quality: "min9", name: `${this.getNoteName(iiRoot)}min9 (ii)`, type: "subdominant" });
+
+                // half-diminished ii chord for minor-mode jazz flavor
+                if (style === "dark" || jazzPerc > 60) {
+                    candidates.push({ root: iiRoot, quality: "m7b5", name: `${this.getNoteName(iiRoot)}m7b5 (iiø)`, type: "subdominant" });
+                }
+
                 // IV chord
-                const ivRoot = (root + 5) % 12 + 48;
-                candidates.push({ root: ivRoot, quality: "maj7sharp11", name: `${this.getNoteName(ivRoot)}maj7#11`, type: "subdominant" });
+                const ivRoot = (localRoot + 5) % 12 + 48;
+                candidates.push({ root: ivRoot, quality: "maj7sharp11", name: `${this.getNoteName(ivRoot)}maj7#11 (IV)`, type: "subdominant" });
             } else if (subBar === 3) {
                 // V chord candidates (Dominant)
-                const vRoot = (root + 7) % 12 + 48;
-                candidates.push({ root: vRoot, quality: "dom9", name: `${this.getNoteName(vRoot)}dom9`, type: "dominant" });
-                candidates.push({ root: vRoot, quality: "dom13", name: `${this.getNoteName(vRoot)}dom13`, type: "dominant" });
+                const vRoot = (localRoot + 7) % 12 + 48;
+
+                // Traditional or Altered Dominant
+                if (outsidePerc > 40 || style === "progressive" || style === "experimental") {
+                    candidates.push({ root: vRoot, quality: "dom7alt", name: `${this.getNoteName(vRoot)}7alt (V7alt)`, type: "dominant" });
+                    candidates.push({ root: vRoot, quality: "dom9b5", name: `${this.getNoteName(vRoot)}9b5 (V7b5)`, type: "dominant" });
+                } else {
+                    candidates.push({ root: vRoot, quality: "dom9", name: `${this.getNoteName(vRoot)}dom9 (V9)`, type: "dominant" });
+                    candidates.push({ root: vRoot, quality: "dom13", name: `${this.getNoteName(vRoot)}dom13 (V13)`, type: "dominant" });
+                }
 
                 // Tritone Substitution (bII7alt)
-                if (outsidePerc > 15) {
-                    const bIIRoot = (root + 1) % 12 + 48;
-                    candidates.push({ root: bIIRoot, quality: "dom7alt", name: `${this.getNoteName(bIIRoot)}7alt (Tritone Sub)`, type: "dominant" });
-                    candidates.push({ root: bIIRoot, quality: "maj7sharp11", name: `${this.getNoteName(bIIRoot)}7#11 (Tritone)`, type: "dominant" });
+                if (outsidePerc > 15 || style === "progressive" || style === "experimental") {
+                    const bIIRoot = (localRoot + 1) % 12 + 48;
+                    candidates.push({ root: bIIRoot, quality: "dom7alt", name: `${this.getNoteName(bIIRoot)}7alt (bII7 Tritone)`, type: "dominant" });
+                    candidates.push({ root: bIIRoot, quality: "maj7sharp11", name: `${this.getNoteName(bIIRoot)}7#11 (bII)`, type: "dominant" });
+                }
+
+                // End of progression (Bar 64): High tension turnaround chord to loop back to the start root
+                if (b === 63) {
+                    const turnaroundRoot = (root + 11) % 12 + 48; // bVII or viio
+                    candidates.push({ root: turnaroundRoot, quality: "dim7", name: `${this.getNoteName(turnaroundRoot)}dim7 (Turnaround)`, type: "dominant" });
                 }
             }
 
@@ -83,12 +124,12 @@ export class JazzProgression {
             for (const n of notesB) {
                 if (setA.has(n % 12)) commonTones++;
             }
-            const commonBonus = commonTones * 0.15;
+            const commonBonus = commonTones * 0.25; // Boosted common-tone weight
 
             // Tonic-to-Dominant flow alignment bonus
             let syntaxBonus = 0;
-            if (chordA.type === "subdominant" && chordB.type === "dominant") syntaxBonus = 0.5;
-            if (chordA.type === "dominant" && chordB.type === "tonic") syntaxBonus = 0.6;
+            if (chordA.type === "subdominant" && chordB.type === "dominant") syntaxBonus = 0.6;
+            if (chordA.type === "dominant" && chordB.type === "tonic") syntaxBonus = 0.8;
 
             return vlCost + commonBonus + syntaxBonus;
         };
