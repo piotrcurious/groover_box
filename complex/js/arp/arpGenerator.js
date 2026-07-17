@@ -1,10 +1,41 @@
 // Highly expressive, multi-algorithm generative arpeggiator engine
 // Upgraded with resolution-independent virtual steps, velocity randomness,
 // interval spread, syncopated rhythmic complexity modes, strict pitch bounds,
-// advanced bass conflict modes, and dynamic gate length randomness.
+// advanced bass conflict modes, dynamic gate length randomness, and Fractal Fluency (1/f self-similarity).
 export class ArpGenerator {
     constructor() {
         this.index = 0;
+
+        // Voss-McCartney Pink Noise (1/f) generator state variables for fractal fluency
+        this.numPinkGens = 8;
+        this.pinkKeys = new Array(this.numPinkGens).fill(0).map(() => Math.random());
+        this.pinkRunningSum = this.pinkKeys.reduce((a, b) => a + b, 0);
+    }
+
+    /**
+     * Voss-McCartney pink noise algorithm (1/f spectrum) to generate fractal self-similarity.
+     * Generates a value in [0, 1] with long-range correlative memory.
+     */
+    getFractalNoise() {
+        // Find which generators are updated at this index tick (using binary counting)
+        const count = this.index + 1;
+        let diffSum = 0;
+
+        for (let i = 0; i < this.numPinkGens; i++) {
+            if ((count & (1 << i)) !== 0) {
+                const oldVal = this.pinkKeys[i];
+                const newVal = Math.random();
+                this.pinkKeys[i] = newVal;
+                diffSum += (newVal - oldVal);
+            }
+        }
+
+        this.pinkRunningSum += diffSum;
+        // Normalize sum of generators back to [0, 1] range
+        let normVal = this.pinkRunningSum / this.numPinkGens;
+        if (normVal < 0) normVal = 0;
+        if (normVal > 1) normVal = 1;
+        return normVal;
     }
 
     /**
@@ -27,6 +58,8 @@ export class ArpGenerator {
      * @param {number} maxPitch - Upper MIDI bound (36-127)
      * @param {string} bassConflictMode - Action style on register clashing ('ignore', 'shift-octave', 'resolve-consonant', 'drop-note')
      * @param {number} gateRandomness - Percent variation in note duration (0-100)
+     * @param {number} fractalFluency - Fractal influence level (0-100)
+     * @param {number} fractalDim - Fractal spectral dimension index alpha (0.0 to 2.0)
      */
     getNextNote(
         chord,
@@ -45,25 +78,44 @@ export class ArpGenerator {
         minPitch = 48,
         maxPitch = 96,
         bassConflictMode = "resolve-consonant",
-        gateRandomness = 0
+        gateRandomness = 0,
+        fractalFluency = 0,
+        fractalDim = 1.0
     ) {
-        // 1. Rhythm complexity filters
+        // Generate our primary 1/f self-similar pink noise value
+        const fNoise = this.getFractalNoise();
+
+        // Transform the noise using our spectral exponent dimension (alpha)
+        // alpha near 0 = White noise, 1.0 = Pink noise (organic/fluent), 2.0 = Brownian (smooth walk)
+        let alphaNoise = fNoise;
+        if (fractalDim !== 1.0) {
+            // Apply exponential scaling mapping to modify spectral behavior
+            alphaNoise = Math.pow(fNoise, fractalDim);
+        }
+
+        const fluencyCoeff = fractalFluency / 100.0;
+
+        // 1. Fractal-influenced density filter
+        let adjustedDensity = density;
+        if (fractalFluency > 0) {
+            // Modulate density by fractal noise, creating beautiful long-term patterns of sparseness/density
+            const densityMod = (alphaNoise - 0.5) * 50 * fluencyCoeff;
+            adjustedDensity = Math.max(10, Math.min(100, density + densityMod));
+        }
+
+        // Rhythm complexity filters
         let skipTrigger = false;
         let isForcedAccent = false;
         let isForcedGhost = false;
 
         if (rhythmMode === "syncopated") {
-            // Accent the offbeats, occasionally drop the downbeats
             const isDownbeat = (step % 4 === 0);
             if (isDownbeat && Math.random() < 0.25) {
-                // 25% chance of dropping downbeats for syncopation
                 skipTrigger = true;
             } else if (!isDownbeat && (step % 2 !== 0) && Math.random() < 0.8) {
-                // High offbeat accentuation
                 isForcedAccent = true;
             }
         } else if (rhythmMode === "dotted") {
-            // Emulate dotted pattern feel (accenting/triggering on 3s, skipping others or turning them into ghosts)
             if (step % 3 !== 0) {
                 if (Math.random() < 0.6) {
                     skipTrigger = true;
@@ -74,7 +126,6 @@ export class ArpGenerator {
                 isForcedAccent = true;
             }
         } else if (rhythmMode === "ratchet") {
-            // Add a burst of speed and intensity on subdivision patterns
             if (step % 8 === 0 || step % 8 === 1) {
                 isForcedAccent = true;
             } else if (step % 4 === 2 && Math.random() < 0.3) {
@@ -82,9 +133,9 @@ export class ArpGenerator {
             }
         }
 
-        // Density filter: if random threshold is not met or skipTrigger is active, do not play
-        if (skipTrigger || (Math.random() * 100 > density)) {
-            this.index++; // Keep advancing the index so we don't stagnate on the same note
+        // Density filter
+        if (skipTrigger || (Math.random() * 100 > adjustedDensity)) {
+            this.index++;
             return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
         }
 
@@ -103,15 +154,12 @@ export class ArpGenerator {
             const pos = this.index % Math.max(1, cycle);
             noteIdx = pos < len ? pos : cycle - pos;
         } else if (order === "brownian") {
-            // Random step walk +/- 1 index
             const stepChange = Math.random() > 0.5 ? 1 : -1;
             noteIdx = Math.abs((this.index + stepChange) % len);
             this.index = noteIdx;
         } else if (order === "funky") {
-            // Syncopated jumps mapping chord tones dynamically
             noteIdx = (this.index * 3 + (step % 3)) % len;
         } else if (order === "converge") {
-            // Starts from extremes (lowest, highest, second lowest, second highest...)
             const cycleIdx = this.index % len;
             if (cycleIdx % 2 === 0) {
                 noteIdx = Math.floor(cycleIdx / 2);
@@ -119,37 +167,34 @@ export class ArpGenerator {
                 noteIdx = len - 1 - Math.floor(cycleIdx / 2);
             }
         } else if (order === "retrograde") {
-            // Exact reversed playback of chord tones
             noteIdx = (len - 1 - (this.index % len)) % len;
         } else if (order === "enclosure") {
-            // Cycles standard indexes but resolves using dynamic enclosure
             noteIdx = this.index % len;
+        }
+
+        // Apply a small fractal offset jump to note indices to create self-similar intervals
+        if (fractalFluency > 0 && len > 2) {
+            const indexShift = Math.floor((alphaNoise - 0.5) * len * fluencyCoeff);
+            noteIdx = Math.abs((noteIdx + indexShift) % len);
         }
 
         let targetNote = notes[noteIdx] || notes[0];
 
         // 3. Chromatic / Bebop Passing Enclosures
         if (order === "enclosure" && len > 1) {
-            // Wrap the target note using a 3-step chromatic enclosure
             const encStep = step % 3;
             if (encStep === 0) {
-                targetNote += 1; // Upper chromatic neighbor
+                targetNote += 1;
             } else if (encStep === 1) {
-                targetNote -= 1; // Lower chromatic neighbor
+                targetNote -= 1;
             }
-            // encStep === 2 resolves perfectly to the chord tone
         }
 
         // 4. Open Voicing Interval Spread Transpositions
-        // 0 = Closed (no transpose), 1 = Fifth alternate (+7 on odd indices), 2 = Octave alternate (+12 on odd indices), 3 = Wide Fifth-Octave (+19 on odd, +7 on even indexes)
         if (spread === 1) {
-            if (noteIdx % 2 !== 0) {
-                targetNote += 7;
-            }
+            if (noteIdx % 2 !== 0) targetNote += 7;
         } else if (spread === 2) {
-            if (noteIdx % 2 !== 0) {
-                targetNote += 12;
-            }
+            if (noteIdx % 2 !== 0) targetNote += 12;
         } else if (spread === 3) {
             if (noteIdx % 2 !== 0) {
                 targetNote += 19;
@@ -178,22 +223,19 @@ export class ArpGenerator {
             const diff = Math.abs(targetNote - bassNote);
 
             if (bassConflictMode === "shift-octave") {
-                // Ensure arpeggio stays at least 1 octave higher than active bass register
                 while (targetNote <= bassNote + 12) {
                     targetNote += 12;
                 }
             } else if (bassConflictMode === "resolve-consonant") {
-                // Shift or snap clashing intervals (minor seconds, tritones) to pleasant chord degrees
                 const intervalDiff = diff % 12;
                 if (intervalDiff === 1) {
-                    targetNote += 1; // major second
+                    targetNote += 1;
                 } else if (intervalDiff === 6) {
-                    targetNote += 1; // perfect fifth
+                    targetNote += 1;
                 } else if (intervalDiff === 11) {
-                    targetNote += 1; // perfect octave
+                    targetNote += 1;
                 }
             } else if (bassConflictMode === "drop-note") {
-                // Drop trigger if notes are physically within major/minor second or octave boundary clashes
                 const intervalDiff = diff % 12;
                 if (diff < 12 || intervalDiff === 1 || intervalDiff === 2) {
                     this.index++;
@@ -203,21 +245,24 @@ export class ArpGenerator {
         }
 
         // 7. Strict Pitch Limits Clamping
-        // Ensure note is bounds-aligned. Transpose by octave up/down rather than flat clipping to preserve pitch class
         while (targetNote < minPitch) {
             targetNote += 12;
         }
         while (targetNote > maxPitch) {
             targetNote -= 12;
         }
-
-        // Double check bounds to clamp safely in case minPitch/maxPitch is extremely narrow
         targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
 
         // 8. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
-        if (Math.random() * 100 < mutationRate) {
-            // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
+        let adjustedMutationRate = mutationRate;
+        if (fractalFluency > 0) {
+            // Modulate mutation rate fractally (giving waves of organic outside tones)
+            const mutationMod = (alphaNoise - 0.5) * 30 * fluencyCoeff;
+            adjustedMutationRate = Math.max(0, Math.min(100, mutationRate + mutationMod));
+        }
+
+        if (Math.random() * 100 < adjustedMutationRate) {
             const mutationInterval = Math.random() > 0.5 ? 2 : -1;
             const mutatedCandidate = targetNote + mutationInterval;
             if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
@@ -230,7 +275,6 @@ export class ArpGenerator {
         let velocity = 85;
         let isGhost = false;
 
-        // Base velocity range influenced by chord tension parameters
         const isTense = chord.quality.includes("alt") || chord.quality.includes("sharp11") || chord.quality.includes("dim");
         const tensionMultiplier = isTense ? 1.15 : 1.00;
 
@@ -238,17 +282,21 @@ export class ArpGenerator {
         const isOffbeat = (step % 2 !== 0);
 
         if (isStructuralAccent && !isForcedGhost) {
-            // Accent modeling using the custom accentLevel slider coefficient
             const accentBoost = (accentLevel / 100) * 35;
             velocity = Math.floor((100 + accentBoost) * tensionMultiplier);
         } else if (isForcedGhost || (isOffbeat && (Math.random() * 100 < ghostChance))) {
-            // Ghost note triggered
             velocity = Math.floor((15 + Math.random() * 20) * tensionMultiplier);
             isGhost = true;
         } else {
-            // Normal intermediate step
             const normalBase = 80 + (1.0 - (accentLevel / 100)) * 10;
             velocity = Math.floor(normalBase * tensionMultiplier);
+        }
+
+        // Fractal velocity modulation
+        if (fractalFluency > 0) {
+            // Create long-term dynamic rises and falls of volume
+            const velocityMod = Math.floor((alphaNoise - 0.5) * 45 * fluencyCoeff);
+            velocity += velocityMod;
         }
 
         // Custom Velocity Randomness Slider Influence
@@ -260,13 +308,28 @@ export class ArpGenerator {
 
         velocity = Math.max(5, Math.min(127, velocity));
 
-        // 10. Gate Randomness Scale Calculation
+        // 10. Gate Randomness and Fractal Gate Modulation
         let gateModifier = 1.0;
-        if (gateRandomness > 0) {
-            const maxGateJitter = (gateRandomness / 100) * 0.5; // up to 50% change
-            gateModifier = 1.0 + (Math.random() - 0.5) * 2 * maxGateJitter;
-            gateModifier = Math.max(0.1, Math.min(2.0, gateModifier));
+        let adjustedGateRand = gateRandomness;
+
+        if (fractalFluency > 0) {
+            // Mutate gate randomness fractally
+            const gateRandMod = (alphaNoise - 0.5) * 25 * fluencyCoeff;
+            adjustedGateRand = Math.max(0, Math.min(100, gateRandomness + gateRandMod));
         }
+
+        if (adjustedGateRand > 0) {
+            const maxGateJitter = (adjustedGateRand / 100) * 0.5;
+            gateModifier = 1.0 + (Math.random() - 0.5) * 2 * maxGateJitter;
+        }
+
+        // Additionally apply long-term fractal gate swelling/shortening
+        if (fractalFluency > 0) {
+            const fractalGateSwell = (alphaNoise - 0.5) * 0.4 * fluencyCoeff;
+            gateModifier += fractalGateSwell;
+        }
+
+        gateModifier = Math.max(0.1, Math.min(2.0, gateModifier));
 
         this.index++;
 

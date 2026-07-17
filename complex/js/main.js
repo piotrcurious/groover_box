@@ -236,6 +236,9 @@ function scheduleStep(stepIndex, time) {
 
             // Predict the progression of the bass note into the next micro-intervals
             // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
+            const fractalFluency = parseInt(document.getElementById("sliderArpFractalFluency").value || "0");
+            const fractalDim = parseFloat(document.getElementById("sliderArpFractalDim").value || "1.0");
+
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
                 virtualStep,
@@ -253,7 +256,9 @@ function scheduleStep(stepIndex, time) {
                 minPitch,
                 maxPitch,
                 bassConflictMode,
-                gateRandomness
+                gateRandomness,
+                fractalFluency,
+                fractalDim
             );
 
             if (arpRes.trigger) {
@@ -590,7 +595,9 @@ function bindUIEvents() {
         { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} },
         { id: "sliderArpMinPitch", lbl: "lblArpMinPitch", action: () => {} },
         { id: "sliderArpMaxPitch", lbl: "lblArpMaxPitch", action: () => {} },
-        { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} }
+        { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} },
+        { id: "sliderArpFractalFluency", lbl: "lblArpFractalFluency", action: () => {} },
+        { id: "sliderArpFractalDim", lbl: "lblArpFractalDim", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
