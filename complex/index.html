@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthesia Generative Modular Groovebox</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container-fluid">
+    <header>
+        <div>
+            <h1>SYNTHESIA GROOVEBOX</h1>
+            <div class="sub-header">GENERATIVE JAZZ & MICROTONAL ENGINE</div>
+        </div>
+        <div class="sub-header">V1.0.0 // WEB AUDIO API COMPONENT-BASED ARCHITECTURE</div>
+    </header>
+
+    <!-- Global Transport Bar -->
+    <div class="transport-bar">
+        <button id="btnPlay" class="btn-primary">Start Engine</button>
+        <button id="btnRandomizePattern">Randomize Pattern</button>
+        <button id="btnGenerateProgression">Generate Progression</button>
+
+        <div class="control-group" style="flex-direction: row; align-items: center; gap: 10px; width: 220px;">
+            <label style="font-size: 0.8rem; min-width: 60px;">BPM: <span id="lblBpm">110</span></label>
+            <input type="range" id="sliderBpm" min="60" max="220" value="110" style="flex: 1;">
+        </div>
+
+        <div class="control-group" style="flex-direction: row; align-items: center; gap: 10px; width: 200px;">
+            <label style="font-size: 0.8rem; min-width: 60px;">Swing: <span id="lblSwing">0</span>%</label>
+            <input type="range" id="sliderSwing" min="0" max="100" value="0" style="flex: 1;">
+        </div>
+
+        <div class="transport-display">
+            <div class="transport-display-item">
+                <span>Bar</span>
+                <span id="dispBar" style="font-weight: bold;">01</span>
+            </div>
+            <div class="transport-display-item">
+                <span>Beat</span>
+                <span id="dispBeat" style="font-weight: bold;">01</span>
+            </div>
+            <div class="transport-display-item">
+                <span>Step</span>
+                <span id="dispStep" style="font-weight: bold;">01</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Layout -->
+    <div class="dashboard-grid">
+
+        <!-- Left Panel: Harmony & Microtonal Parameters -->
+        <div>
+            <div class="panel">
+                <div class="panel-title">Harmony Engine</div>
+                <div class="control-group" style="margin-bottom: 12px;">
+                    <label>Root Center</label>
+                    <select id="selectRootKey">
+                        <option value="60">C (60)</option>
+                        <option value="61">C# / Db (61)</option>
+                        <option value="62">D (62)</option>
+                        <option value="63">D# / Eb (63)</option>
+                        <option value="64">E (64)</option>
+                        <option value="65">F (65)</option>
+                        <option value="55">G (55)</option>
+                        <option value="57">A (57)</option>
+                        <option value="58">Bb (58)</option>
+                    </select>
+                </div>
+                <div class="control-group" style="margin-bottom: 12px;">
+                    <label>Progression Goal Style</label>
+                    <select id="selectProgStyle">
+                        <option value="jazz" selected>Traditional Jazz ii-V-I</option>
+                        <option value="fusion">Fusion Tonal Gravity</option>
+                        <option value="dark">Dark Modal Interchange</option>
+                        <option value="progressive">Outside & Tritone Subs</option>
+                        <option value="experimental">Highly Tense Random Walk</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Jazz % <span id="lblJazzPerc">60</span></label>
+                        <input type="range" id="sliderJazzPerc" min="0" max="100" value="60">
+                    </div>
+                    <div class="control-group">
+                        <label>Outside % <span id="lblOutsidePerc">20</span></label>
+                        <input type="range" id="sliderOutsidePerc" min="0" max="100" value="20">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Bridge Length <span id="lblBridgeLength">1</span></label>
+                        <input type="range" id="sliderBridgeLength" min="0" max="4" value="1">
+                    </div>
+                    <div class="control-group">
+                        <label>Tension Threshold <span id="lblTensionThreshold">50</span></label>
+                        <input type="range" id="sliderTensionThreshold" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Microtonal Tuning</div>
+                <div class="control-group" style="margin-bottom: 12px;">
+                    <label>Temperament System</label>
+                    <select id="selectTuning">
+                        <option value="12tet" selected>12-TET (Standard Western)</option>
+                        <option value="19tet">19-TET (Equal temperament)</option>
+                        <option value="22shruti">22 Shruti (Indian Classical)</option>
+                        <option value="24tet">24-TET (Quarter-tones)</option>
+                        <option value="31tet">31-TET (Adriaan Fokker)</option>
+                        <option value="53tet">53-TET (Mercator's cycle)</option>
+                        <option value="just">Just Intonation (Pure Harmonic Ratios)</option>
+                        <option value="pythagorean">Pythagorean Tuning</option>
+                    </select>
+                </div>
+                <div class="control-group" style="margin-bottom: 12px;">
+                    <label>Scala File Import</label>
+                    <textarea id="txtScala" placeholder="Paste custom Scala (.scl) definitions here..." style="width: 100%; height: 70px; background: var(--bg-panel-light); border: 1px solid var(--border-color); color: var(--text-primary); font-family: monospace; font-size: 0.75rem; padding: 5px; border-radius: 4px; resize: none;"></textarea>
+                    <button id="btnApplyScala" style="margin-top: 5px; width: 100%; font-size: 0.75rem; padding: 6px;">Apply Scala Definition</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Psychoacoustic Meters</div>
+                <div class="meter-row">
+                    <div class="meter-container">
+                        <div class="meter-header"><span>Roughness (Dissonance)</span><span id="lblRoughnessVal">0.00</span></div>
+                        <div class="meter-bar-outer"><div class="meter-bar-inner" id="meterRoughness"></div></div>
+                    </div>
+                    <div class="meter-container">
+                        <div class="meter-header"><span>Harmonicity (Clarity)</span><span id="lblHarmonicityVal">1.00</span></div>
+                        <div class="meter-bar-outer"><div class="meter-bar-inner" id="meterHarmonicity"></div></div>
+                    </div>
+                    <div class="meter-container">
+                        <div class="meter-header"><span>Tension Model</span><span id="lblTensionVal">0.00</span></div>
+                        <div class="meter-bar-outer"><div class="meter-bar-inner" id="meterTension"></div></div>
+                    </div>
+                    <div class="meter-container">
+                        <div class="meter-header"><span>Expectation Gap</span><span id="lblExpectationVal">0.00</span></div>
+                        <div class="meter-bar-outer"><div class="meter-bar-inner" id="meterExpectation"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel: Grid Editor & Timeline -->
+        <div>
+            <!-- Timeline panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Generated 64-Bar Progression Timeline</span>
+                    <span style="font-size: 0.7rem; color: var(--accent-cyan);" id="lblActiveChord">Active: -</span>
+                </div>
+                <div class="timeline-container" id="timelineContainer">
+                    <!-- Dynamic progression slots populated here -->
+                </div>
+            </div>
+
+            <!-- Piano Roll / Step Editor Panels -->
+            <div class="sequencer-container">
+                <!-- Bar Editor controls -->
+                <div class="panel" style="margin-bottom: 0; padding: 10px 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button id="btnPrevBar">◄ Prev Bar</button>
+                            <span style="font-family: monospace; font-weight: bold; font-size: 1.1rem; min-width: 80px; text-align: center;" id="lblSelectedBar">BAR 01</span>
+                            <button id="btnNextBar">Next Bar ►</button>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btnCopyBar" style="font-size: 0.75rem; padding: 6px 12px;">Copy to All Bars</button>
+                            <button id="btnEuclideanGen" style="font-size: 0.75rem; padding: 6px 12px; background: rgba(0, 240, 255, 0.1); border-color: var(--accent-cyan);">Euclidean Fill</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drum grid (Kick, Snare, Hihat) -->
+                <div class="grid-row">
+                    <div class="grid-row-header">
+                        <span>DRUMS (KICK / SNARE / HIHAT)</span>
+                        <span>64-step Bar Grid</span>
+                    </div>
+                    <div class="sequencer-grid" id="gridDrum"></div>
+                </div>
+
+                <!-- Bass trigger grid -->
+                <div class="grid-row">
+                    <div class="grid-row-header">
+                        <span>WALKING BASS TRIGGER</span>
+                        <span>64-step Bar Grid</span>
+                    </div>
+                    <div class="sequencer-grid" id="gridBass"></div>
+                </div>
+
+                <!-- Arpeggiator trigger grid -->
+                <div class="grid-row">
+                    <div class="grid-row-header">
+                        <span>FUNKY ARPEGGIATOR TRIGGER</span>
+                        <span>64-step Bar Grid</span>
+                    </div>
+                    <div class="sequencer-grid" id="gridArp"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Synthesis, Generative, and Visualizers -->
+        <div>
+            <div class="panel">
+                <div class="panel-title">Synthesis & FX</div>
+                <div class="control-group" style="margin-bottom: 12px;">
+                    <label>Master Gain <span id="lblMasterVol">70</span>%</label>
+                    <input type="range" id="sliderMasterVol" min="0" max="100" value="70">
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Delay Dry/Wet <span id="lblDelayWet">30</span>%</label>
+                        <input type="range" id="sliderDelayWet" min="0" max="100" value="30">
+                    </div>
+                    <div class="control-group">
+                        <label>Reverb Space <span id="lblReverbSpace">40</span>%</label>
+                        <input type="range" id="sliderReverbSpace" min="0" max="100" value="40">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Saturation <span id="lblSaturation">25</span>%</label>
+                        <input type="range" id="sliderSaturation" min="0" max="100" value="25">
+                    </div>
+                    <div class="control-group">
+                        <label>Bass Sub-Level <span id="lblBassSub">50</span>%</label>
+                        <input type="range" id="sliderBassSub" min="0" max="100" value="50">
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Arpeggiator Sound Type</label>
+                    <select id="selectArpSound">
+                        <option value="fm">Funky FM Modulator</option>
+                        <option value="subtractive" selected>Analog Pluck (Subtractive)</option>
+                        <option value="sine">Pure Sine & Ping-Pong Delay</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Generative Models</div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Bass Walk Style</label>
+                        <select id="selectBassStyle">
+                            <option value="enclosure" selected>Enclosure / Chromatic</option>
+                            <option value="bebop">Bebop Scale Walk</option>
+                            <option value="diminished">Diminished Passing</option>
+                            <option value="tritone">Tritone Approach</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Arp Ordering</label>
+                        <select id="selectArpOrder">
+                            <option value="updown" selected>Up & Down Walk</option>
+                            <option value="funky">Funky Disjointed Index</option>
+                            <option value="brownian">Brownian Step Walk</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Bass Root Bias <span id="lblBassBias">60</span>%</label>
+                        <input type="range" id="sliderBassBias" min="0" max="100" value="60">
+                    </div>
+                    <div class="control-group">
+                        <label>Arp Octaves <span id="lblArpOctaves">2</span></label>
+                        <input type="range" id="sliderArpOctaves" min="1" max="4" value="2">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Ghost Note Chance <span id="lblGhostChance">20</span>%</label>
+                        <input type="range" id="sliderGhostChance" min="0" max="100" value="20">
+                    </div>
+                    <div class="control-group">
+                        <label>Rhythm Mutation <span id="lblMutationChance">15</span>%</label>
+                        <input type="range" id="sliderMutationChance" min="0" max="100" value="15">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tonnetz & Harmonic Spectrum Visualizers -->
+            <div class="panel">
+                <div class="panel-title">Harmonic Space (Tonnetz)</div>
+                <div class="canvas-panel" style="height: 140px;">
+                    <canvas id="canvasTonnetz" width="318" height="140"></canvas>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Real-Time FFT Spectrum</div>
+                <div class="canvas-panel" style="height: 110px;">
+                    <canvas id="canvasSpectrum" width="318" height="110"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Microtonal Keyboard Section -->
+    <div class="panel" style="margin-top: 10px;">
+        <div class="panel-title">Microtonal Interactive Ribbon Keyboard</div>
+        <div class="keyboard-container" id="pianoKeyboard">
+            <!-- Populated dynamically based on Tuning Temperament system -->
+        </div>
+    </div>
+</div>
+
+<!-- Core application modules -->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
