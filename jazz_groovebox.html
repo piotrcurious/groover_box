@@ -493,6 +493,62 @@
             margin-bottom: 5px;
             font-size: 0.85rem;
         }
+
+        /* Breeding Lab styling */
+        .breeding-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            .breeding-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .candidate-card {
+            background-color: #0d111a;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .candidate-card.active-loaded {
+            border-color: var(--accent-base);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+        }
+
+        .candidate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dna-strip {
+            height: 10px;
+            background-color: #1a2130;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .dna-bar {
+            flex: 1;
+            height: 100%;
+        }
+
+        .dna-bar.is-base {
+            background-color: var(--accent-base);
+        }
+
+        .dna-bar.is-bridge {
+            background-color: var(--accent-bridge);
+        }
     </style>
 </head>
 <body>
@@ -802,6 +858,119 @@
                             <span>Arpeggio Rhythm Rhythm</span>
                         </div>
                         <div class="step-grid" id="arpGrid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evolutionary Genetic Breeding Lab Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">🧬 Evolutionary Genetic Breeding Lab</span>
+                </div>
+                <div class="guide-banner" style="margin-bottom: 5px;">
+                    <h3>🧪 Manual Hybrid Selection & DNA Splicing</h3>
+                    Store up to 4 parallel candidate progressions (chromosomes) in the incubator below. Select two parent candidates, choose your preferred crossover method, configure mutation probability and splice new children to evolve the perfect microtonal jazz session!
+                </div>
+
+                <div class="breeding-grid">
+                    <!-- Candidate 1 -->
+                    <div class="candidate-card" id="candidate-0">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #1</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(0)" id="loadBtn-0">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-0"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-0">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(0)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(0)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 2 -->
+                    <div class="candidate-card" id="candidate-1">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #2</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(1)" id="loadBtn-1">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-1"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-1">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(1)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(1)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 3 -->
+                    <div class="candidate-card" id="candidate-2">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #3</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(2)" id="loadBtn-2">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-2"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-2">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(2)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(2)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 4 -->
+                    <div class="candidate-card" id="candidate-3">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #4</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(3)" id="loadBtn-3">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-3"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-3">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(3)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(3)">Save Active Here</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breeder Crossbreeding Station controls -->
+                <div class="sequencer-header-actions" style="margin-top: 10px;">
+                    <span class="sequencer-title">🔬 Crossbreed Station Controls</span>
+                    <div class="sequencer-quick-btns" style="flex-wrap: wrap; gap: 10px; width: 100%;">
+                        <div class="control-group" style="min-width: 130px; flex: 1;">
+                            <label>Parent A</label>
+                            <select id="parentA">
+                                <option value="0" selected>Incubator #1</option>
+                                <option value="1">Incubator #2</option>
+                                <option value="2">Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="min-width: 130px; flex: 1;">
+                            <label>Parent B</label>
+                            <select id="parentB">
+                                <option value="0">Incubator #1</option>
+                                <option value="1" selected>Incubator #2</option>
+                                <option value="2">Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="min-width: 180px; flex: 1;">
+                            <label>Crossover DNA Method</label>
+                            <select id="crossoverMethod">
+                                <option value="single" selected>Single-point Slice</option>
+                                <option value="double">Two-point Splice</option>
+                                <option value="uniform">Uniform Coin-flip Random</option>
+                                <option value="interleave">Interleaved Alternating Bars</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="min-width: 150px; flex: 1;">
+                            <label>Target Incubator</label>
+                            <select id="targetIncubator">
+                                <option value="0">Incubator #1</option>
+                                <option value="1">Incubator #2</option>
+                                <option value="2" selected>Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="triggerBreedingLabBreed()" style="width: 100%;">Breed Parents into Target Incubator</button>
                     </div>
                 </div>
             </div>
@@ -1845,8 +2014,289 @@
         }
     });
 
-    // --- 9. BOOTSTRAP INITIALIZATION ---
+    // --- 9. GENETIC EVOLUTIONARY BREEDING ENGINE ---
+    // A population/chromosomes holding 64-bar structures
+    // Each chromosome has .progression array, .name, and .date
+    let breedingCandidates = [null, null, null, null];
+
+    function cloneProgressionArray(progArray) {
+        return progArray.map(item => {
+            if (!item) return null;
+            return {
+                notes: [...item.notes],
+                name: item.name,
+                isBridge: item.isBridge,
+                explanation: item.explanation
+            };
+        });
+    }
+
+    // Initialize/Regenerate the breeding lab population with varied base options
+    function initializeBreedingLabCandidates() {
+        const root = parseInt(document.getElementById('rootKey').value);
+        const baseType = document.getElementById('baseChordType').value;
+        const bridgeType = document.getElementById('bridgeChordType').value;
+        const bridgeInterval = parseInt(document.getElementById('bridgeInterval').value);
+        const bridgeFreq = parseInt(document.getElementById('bridgeFreq').value);
+        const bridgeDuration = parseInt(document.getElementById('bridgeDuration').value);
+        const tensionPercent = parseFloat(document.getElementById('tensionLevel').value);
+
+        // Populate Candidate 1: Classic Jazz Standard base
+        let tempProg1 = new Array(TOTAL_BARS).fill(null);
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 4 === 3);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                notes = [root + bridgeInterval + 12, root + bridgeInterval + 15, root + bridgeInterval + 19];
+                name = `Bridge Root Chord`;
+                explanation = "Bridge tension bar.";
+            } else {
+                notes = [root, root + 4, root + 7, root + 11];
+                name = `Consonant Root Chord`;
+                explanation = "Consonant jazz base.";
+            }
+            tempProg1[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[0] = { progression: tempProg1, desc: "Classic Jazz Foundation" };
+
+        // Populate Candidate 2: Circle of Fifths style base
+        let tempProg2 = new Array(TOTAL_BARS).fill(null);
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 4 >= 2);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                notes = [root + bridgeInterval + 12, root + bridgeInterval + 14, root + bridgeInterval + 17];
+                name = `Minor Bridge Dissonance`;
+                explanation = "Bridge tension bar.";
+            } else {
+                notes = [root + 5, root + 9, root + 12, root + 16];
+                name = `Subdominant IV Maj7`;
+                explanation = "Borrowing from Circle of Fifths.";
+            }
+            tempProg2[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[1] = { progression: tempProg2, desc: "Modal Borrowing Framework" };
+
+        // Populate Candidate 3: Heavy Altered Pentatonic bridge tension
+        let tempProg3 = new Array(TOTAL_BARS).fill(null);
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 8 >= 6);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                notes = [root + bridgeInterval, root + bridgeInterval + 4, root + bridgeInterval + 6, root + bridgeInterval + 10];
+                name = `Altered Dominant Bridge`;
+                explanation = "Altered pentatonic scale.";
+            } else {
+                notes = [root, root + 4, root + 7, root + 11, root + 14];
+                name = `Lydian Root Tonic`;
+                explanation = "Lydian base.";
+            }
+            tempProg3[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[2] = { progression: tempProg3, desc: "Extended Lydian & Altered" };
+
+        // Populate Candidate 4: Chromatic steps line cliché
+        let tempProg4 = new Array(TOTAL_BARS).fill(null);
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 6 >= 4);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                notes = [root + bridgeInterval + 12, root + bridgeInterval + 15, root + bridgeInterval + 18];
+                name = `Tense Walkdown Bridge`;
+                explanation = "Bridge tension.";
+            } else {
+                notes = [root, root + 3, root + 7, root + 10];
+                name = `Minor Tonic i-7`;
+                explanation = "Chromatic step base.";
+            }
+            tempProg4[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[3] = { progression: tempProg4, desc: "Minor Line Cliché Sequence" };
+
+        updateBreedingLabUI();
+    }
+
+    // Refresh candidate visual DNA strip and descriptors in lab panel
+    function updateBreedingLabUI() {
+        for (let i = 0; i < 4; i++) {
+            const cand = breedingCandidates[i];
+            const descEl = document.getElementById(`candDesc-${i}`);
+            const dnaEl = document.getElementById(`dna-${i}`);
+
+            if (!cand || !cand.progression) {
+                descEl.innerText = "Empty incubator. Click 'Save Active' to capture current progression.";
+                dnaEl.innerHTML = '';
+                continue;
+            }
+
+            descEl.innerText = `${cand.desc} (Size: 64 Bars)`;
+
+            // Visualise DNA stripe
+            dnaEl.innerHTML = '';
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                const bar = cand.progression[b];
+                const segment = document.createElement('div');
+                segment.className = 'dna-bar ' + (bar.isBridge ? 'is-bridge' : 'is-base');
+                dnaEl.appendChild(segment);
+            }
+        }
+    }
+
+    // Load candidate from breeding lab into the active playing slot
+    window.loadCandidate = function(idx) {
+        const cand = breedingCandidates[idx];
+        if (!cand || !cand.progression) {
+            alert(`Incubator #${idx+1} is empty! Save active progression here first.`);
+            return;
+        }
+
+        // Overwrite active progression
+        progression = cloneProgressionArray(cand.progression);
+
+        // Visual feedback
+        for (let i = 0; i < 4; i++) {
+            const card = document.getElementById(`candidate-${i}`);
+            const loadBtn = document.getElementById(`loadBtn-${i}`);
+            if (i === idx) {
+                card.classList.add('active-loaded');
+                loadBtn.innerText = "Active Play";
+                loadBtn.style.backgroundColor = "var(--accent-base)";
+                loadBtn.style.color = "#000";
+            } else {
+                card.classList.remove('active-loaded');
+                loadBtn.innerText = "Load Active";
+                loadBtn.style.backgroundColor = "#1b2130";
+                loadBtn.style.color = "var(--text-main)";
+            }
+        }
+
+        renderBarGrid();
+        updateTheoryPanel(editingBar);
+        alert(`Successfully loaded DNA chromosome sequence from Incubator #${idx+1} into the active play engine!`);
+    };
+
+    // Save/clone currently active progression into the breeding lab candidate slot
+    window.cloneCurrentToCandidate = function(idx) {
+        breedingCandidates[idx] = {
+            progression: cloneProgressionArray(progression),
+            desc: `User Cloned active session (Generation ${new Date().toLocaleTimeString()})`
+        };
+        updateBreedingLabUI();
+        alert(`Captured currently active progression chromosome and saved into Incubator #${idx+1}!`);
+    };
+
+    // Trigger genetic crossover / crossbreeding
+    window.triggerBreedingLabBreed = function() {
+        const idxA = parseInt(document.getElementById('parentA').value);
+        const idxB = parseInt(document.getElementById('parentB').value);
+        const method = document.getElementById('crossoverMethod').value;
+        const targetIdx = parseInt(document.getElementById('targetIncubator').value);
+
+        const parentA = breedingCandidates[idxA];
+        const parentB = breedingCandidates[idxB];
+
+        if (!parentA || !parentB) {
+            alert("Ensure both parent incubator cards are populated with genes before breeding!");
+            return;
+        }
+
+        let childProg = new Array(TOTAL_BARS).fill(null);
+
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            let sourceParent = parentA;
+
+            if (method === 'single') {
+                // Split exactly down the middle
+                sourceParent = (b < TOTAL_BARS / 2) ? parentA : parentB;
+            } else if (method === 'double') {
+                // Split at 1/4 and 3/4 bars
+                if (b >= TOTAL_BARS / 4 && b < (TOTAL_BARS * 3 / 4)) {
+                    sourceParent = parentB;
+                } else {
+                    sourceParent = parentA;
+                }
+            } else if (method === 'uniform') {
+                // Random coin flip per bar
+                sourceParent = (Math.random() > 0.5) ? parentA : parentB;
+            } else if (method === 'interleave') {
+                // Alternate bars
+                sourceParent = (b % 2 === 0) ? parentA : parentB;
+            }
+
+            // Copy bar note details
+            childProg[b] = {
+                notes: [...sourceParent.progression[b].notes],
+                name: sourceParent.progression[b].name,
+                isBridge: sourceParent.progression[b].isBridge,
+                explanation: sourceParent.progression[b].explanation
+            };
+        }
+
+        // Apply a slight mutation automatically upon crossbreeding
+        let mutateCount = 0;
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            if (Math.random() < 0.1) { // 10% auto mutation rate per bar on breed
+                mutateCount++;
+                // Simple transposition mutation
+                let semitones = (Math.random() > 0.5) ? 1 : -1;
+                childProg[b].notes = childProg[b].notes.map(n => n + semitones);
+                childProg[b].name += " (Mutated)";
+            }
+        }
+
+        breedingCandidates[targetIdx] = {
+            progression: childProg,
+            desc: `Hybrid Offspring (A: #${idxA+1} × B: #${idxB+1}, ${mutateCount} mutations)`
+        };
+
+        updateBreedingLabUI();
+        alert(`Successfully crossed parent chromosome DNA! Spliced offspring loaded into Incubator #${targetIdx+1}.`);
+    };
+
+    // Mutate candidate directly inside breeding lab
+    window.mutateCandidate = function(idx) {
+        const cand = breedingCandidates[idx];
+        if (!cand || !cand.progression) {
+            alert("This incubator is empty. Create or clone a progression before mutating it.");
+            return;
+        }
+
+        let mutantProg = cloneProgressionArray(cand.progression);
+        let mutationCount = 0;
+
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            if (Math.random() < 0.25) { // 25% chance of mutating a bar
+                mutationCount++;
+                // Transpose chords by a fourth, fifth, or octave
+                let intervalOpts = [5, -5, 7, -7, 12, -12];
+                let chosenOffset = intervalOpts[Math.floor(Math.random() * intervalOpts.length)];
+
+                mutantProg[b].notes = mutantProg[b].notes.map(n => n + chosenOffset);
+                mutantProg[b].name = "[Mutant Chord] " + mutantProg[b].name;
+                mutantProg[b].explanation = "Chromosome mutation: transposed chords by " + chosenOffset + " semitones. " + mutantProg[b].explanation;
+            }
+        }
+
+        breedingCandidates[idx] = {
+            progression: mutantProg,
+            desc: `Mutant Variant of #${idx+1} (${mutationCount} bar transpositions)`
+        };
+
+        updateBreedingLabUI();
+        alert(`DNA mutated inside Incubator #${idx+1}! ${mutationCount} bars altered.`);
+    };
+
+    // --- 10. BOOTSTRAP INITIALIZATION ---
     generateJourney();
+    initializeBreedingLabCandidates(); // Initialize breeding lab candidates
     renderStepSequencer();
 </script>
 </body>
