@@ -13,6 +13,7 @@
     --grid-on-bass: #ff0055;
     --grid-on-arp: #00f0ff;
     --grid-on-drum: #ffb700;
+    --grid-on-frac: #9d4edd;
 }
 
 * {
@@ -241,6 +242,11 @@ button.btn-accent:hover {
 .step-cell.active-drum {
     background-color: var(--grid-on-drum);
     box-shadow: 0 0 8px var(--grid-on-drum);
+}
+
+.step-cell.active-frac {
+    background-color: var(--grid-on-frac);
+    box-shadow: 0 0 8px var(--grid-on-frac);
 }
 
 .step-cell.playing::before {

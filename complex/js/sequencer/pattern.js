@@ -1,4 +1,4 @@
-// Pattern structure mapping 64 steps across drums, bass, and arpeggios
+// Pattern structure mapping 64 steps across drums, bass, arpeggios, and fractal roots
 export class Pattern {
     constructor(numBars = 64, stepsPerBar = 64) {
         this.numBars = numBars;
@@ -12,7 +12,8 @@ export class Pattern {
             arp: new Array(16).fill(0), // 0 represents inactive, positive floats/ints represent tempo multipliers
             kick: new Array(16).fill(false),
             snare: new Array(16).fill(false),
-            hihat: new Array(16).fill(false)
+            hihat: new Array(16).fill(false),
+            frac: new Array(16).fill(false) // Steps designated as fractal fluency roots/anchors
         }));
     }
 
@@ -27,6 +28,7 @@ export class Pattern {
         b.kick.fill(false);
         b.snare.fill(false);
         b.hihat.fill(false);
+        b.frac.fill(false);
     }
 
     /**
@@ -41,7 +43,8 @@ export class Pattern {
                 arp: [...source.arp],
                 kick: [...source.kick],
                 snare: [...source.snare],
-                hihat: [...source.hihat]
+                hihat: [...source.hihat],
+                frac: [...source.frac]
             };
         }
     }

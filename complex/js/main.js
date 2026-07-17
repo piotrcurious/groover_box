@@ -18,6 +18,7 @@ import { Visualizers } from "./ui/visualizers.js";
 let clock;
 let synth;
 let activeProgression = [];
+let preRenderedBassNotes = [];
 let patternInstance;
 let expectationInstance;
 
@@ -51,6 +52,10 @@ async function initApp() {
 
         // Default bass walk trigs
         for (let i = 0; i < 16; i += 4) patternInstance.data[b].bass[i] = true;
+
+        // Default fractal root steps (FRAC RT) on downbeats
+        for (let i = 0; i < 16; i += 4) patternInstance.data[b].frac[i] = true;
+
         // Default arp trigs with various default multipliers (1x, 2x, 3x, 4x, 0.5x)
         for (let i = 0; i < 16; i += 3) {
             patternInstance.data[b].arp[i] = (i % 6 === 0) ? 2 : 1;
@@ -114,6 +119,19 @@ function generateProgression() {
         }
     }
 
+    // Pre-calculate/pre-render complete 1024-step walking bass MIDI progression for structural Fractal Fluency analysis
+    const bassStyle = document.getElementById("selectBassStyle") ? document.getElementById("selectBassStyle").value : "enclosure";
+    const bassBias = document.getElementById("sliderBassBias") ? parseInt(document.getElementById("sliderBassBias").value) : 60;
+    preRenderedBassNotes = [];
+    for (let bar = 0; bar < 64; bar++) {
+        const chord = activeProgression[bar];
+        const nextChord = activeProgression[(bar + 1) % 64];
+        for (let step = 0; step < 16; step++) {
+            const note = WalkingBass.generateBassNote(chord, nextChord, step, bassStyle, bassBias);
+            preRenderedBassNotes.push(note);
+        }
+    }
+
     renderTimeline();
 }
 
@@ -150,10 +168,12 @@ function scheduleStep(stepIndex, time) {
         const drumCell = document.getElementById(`drum-step-${activeBarIndex}-${activeStepInBar}`);
         const bassCell = document.getElementById(`bass-step-${activeBarIndex}-${activeStepInBar}`);
         const arpCell = document.getElementById(`arp-step-${activeBarIndex}-${activeStepInBar}`);
+        const fracCell = document.getElementById(`frac-step-${activeBarIndex}-${activeStepInBar}`);
 
         if (drumCell) drumCell.classList.add("playing");
         if (bassCell) bassCell.classList.add("playing");
         if (arpCell) arpCell.classList.add("playing");
+        if (fracCell) fracCell.classList.add("playing");
     });
 
     // 1. Process real-time drum synthesis triggers
@@ -236,8 +256,11 @@ function scheduleStep(stepIndex, time) {
 
             // Predict the progression of the bass note into the next micro-intervals
             // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
-            const fractalFluency = parseInt(document.getElementById("sliderArpFractalFluency").value || "0");
-            const fractalDim = parseFloat(document.getElementById("sliderArpFractalDim").value || "1.0");
+            const fractalIntensity = parseInt(document.getElementById("sliderArpFractalIntensity").value || "0");
+            const fractalScale = parseInt(document.getElementById("sliderArpFractalScale").value || "4");
+            const fractalResolutions = parseInt(document.getElementById("sliderArpFractalResolutions").value || "3");
+            const fractalRoots = barPattern.frac || new Array(16).fill(false);
+            const globalStepIndex = (progressionBarIndex * 16) + activeStepInBar;
 
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
@@ -257,8 +280,12 @@ function scheduleStep(stepIndex, time) {
                 maxPitch,
                 bassConflictMode,
                 gateRandomness,
-                fractalFluency,
-                fractalDim
+                fractalIntensity,
+                fractalScale,
+                fractalResolutions,
+                fractalRoots,
+                preRenderedBassNotes,
+                globalStepIndex
             );
 
             if (arpRes.trigger) {
@@ -454,6 +481,22 @@ function renderGrids() {
                 arpContainer.appendChild(cell);
             }
         }
+
+        // 4. Render fractal roots rows for Bar index b (FRAC RT)
+        const fracContainer = document.getElementById(`gridFrac-${b}`);
+        if (fracContainer) {
+            fracContainer.innerHTML = "";
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement("div");
+                cell.className = `step-cell ${barPattern.frac[i] ? "active-frac" : ""}`;
+                cell.id = `frac-step-${b}-${i}`;
+                cell.addEventListener("click", () => {
+                    barPattern.frac[i] = !barPattern.frac[i];
+                    cell.classList.toggle("active-frac");
+                });
+                fracContainer.appendChild(cell);
+            }
+        }
     }
 }
 
@@ -596,8 +639,9 @@ function bindUIEvents() {
         { id: "sliderArpMinPitch", lbl: "lblArpMinPitch", action: () => {} },
         { id: "sliderArpMaxPitch", lbl: "lblArpMaxPitch", action: () => {} },
         { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} },
-        { id: "sliderArpFractalFluency", lbl: "lblArpFractalFluency", action: () => {} },
-        { id: "sliderArpFractalDim", lbl: "lblArpFractalDim", action: () => {} }
+        { id: "sliderArpFractalIntensity", lbl: "lblArpFractalIntensity", action: () => {} },
+        { id: "sliderArpFractalScale", lbl: "lblArpFractalScale", action: () => {} },
+        { id: "sliderArpFractalResolutions", lbl: "lblArpFractalResolutions", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
@@ -628,6 +672,9 @@ function bindUIEvents() {
 
             patternInstance.data[b].bass = bassEuclidean;
 
+            // Default downbeats for fractal fluency roots
+            patternInstance.data[b].frac = [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false];
+
             // Convert boolean Euclidean trigger states to valid arpeggiator numerical multipliers [1, 2, 3, 4, 0.5]
             const multChoices = [1, 1, 2, 0.5];
             patternInstance.data[b].arp = arpEuclideanRaw.map((trigger, idx) => {
@@ -648,6 +695,7 @@ function bindUIEvents() {
                 barPattern.snare[i] = Math.random() > 0.85;
                 barPattern.hihat[i] = Math.random() > 0.65;
                 barPattern.bass[i] = Math.random() > 0.75;
+                barPattern.frac[i] = (i % 4 === 0); // Default downbeats as roots
 
                 // Randomly choose from tempo multipliers instead of a boolean value
                 if (Math.random() > 0.7) {

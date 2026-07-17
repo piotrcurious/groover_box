@@ -1,46 +1,15 @@
-// Highly expressive, multi-algorithm generative arpeggiator engine
-// Upgraded with resolution-independent virtual steps, velocity randomness,
-// interval spread, syncopated rhythmic complexity modes, strict pitch bounds,
-// advanced bass conflict modes, dynamic gate length randomness, and Fractal Fluency (1/f self-similarity).
+// Highly expressive, multi-algorithm generative arpeggiator engine.
+// Features a structurally authentic Fractal Fluency Engine that computes pitch and velocity
+// self-similarity based on the active/future layers of the Main Bass Progression and dynamic
+// user-defined Fractal Roots, propagating cleanly across musical resolution targets.
 export class ArpGenerator {
     constructor() {
         this.index = 0;
-
-        // Voss-McCartney Pink Noise (1/f) generator state variables for fractal fluency
-        this.numPinkGens = 8;
-        this.pinkKeys = new Array(this.numPinkGens).fill(0).map(() => Math.random());
-        this.pinkRunningSum = this.pinkKeys.reduce((a, b) => a + b, 0);
-    }
-
-    /**
-     * Voss-McCartney pink noise algorithm (1/f spectrum) to generate fractal self-similarity.
-     * Generates a value in [0, 1] with long-range correlative memory.
-     */
-    getFractalNoise() {
-        // Find which generators are updated at this index tick (using binary counting)
-        const count = this.index + 1;
-        let diffSum = 0;
-
-        for (let i = 0; i < this.numPinkGens; i++) {
-            if ((count & (1 << i)) !== 0) {
-                const oldVal = this.pinkKeys[i];
-                const newVal = Math.random();
-                this.pinkKeys[i] = newVal;
-                diffSum += (newVal - oldVal);
-            }
-        }
-
-        this.pinkRunningSum += diffSum;
-        // Normalize sum of generators back to [0, 1] range
-        let normVal = this.pinkRunningSum / this.numPinkGens;
-        if (normVal < 0) normVal = 0;
-        if (normVal > 1) normVal = 1;
-        return normVal;
     }
 
     /**
      * Determines next arpeggiator note, velocity, and timing trigger parameters.
-     * Includes harmonic check against upcoming bass note to ensure beautiful spacing.
+     * Computes proper Fractal Fluency based on the main bass progression at multiple structural resolutions.
      * @param {Object} chord - Current chord configuration
      * @param {number} step - Resolution-independent virtual step index
      * @param {string} order - Arp note arrangement rule
@@ -52,14 +21,18 @@ export class ArpGenerator {
      * @param {string} octStyle - Octave jumping style ('linear', 'alternate', 'random', 'fixed')
      * @param {number} bassNote - Active or upcoming bass note (MIDI value)
      * @param {number} velocityRandomness - Variance in dynamic range (0-100)
-     * @param {number} spread - Interval spread voicing mode (0 = Closed, 1 = Fifth alternate, 2 = Octave alternate, 3 = Wide fifth-octave alternate)
+     * @param {number} spread - Interval spread voicing mode (0-3)
      * @param {string} rhythmMode - Complexity modes ('standard', 'syncopated', 'dotted', 'ratchet')
      * @param {number} minPitch - Lower MIDI bound (36-127)
      * @param {number} maxPitch - Upper MIDI bound (36-127)
      * @param {string} bassConflictMode - Action style on register clashing ('ignore', 'shift-octave', 'resolve-consonant', 'drop-note')
      * @param {number} gateRandomness - Percent variation in note duration (0-100)
-     * @param {number} fractalFluency - Fractal influence level (0-100)
-     * @param {number} fractalDim - Fractal spectral dimension index alpha (0.0 to 2.0)
+     * @param {number} fractalIntensity - Intensity of fractal scaling adjustments (0-100)
+     * @param {number} fractalScale - Multi-scale division base for fractal resolution computations (1-16)
+     * @param {number} fractalResolutions - Number of nested fractal layers/resolutions to sample (1-4)
+     * @param {Array<boolean>} fractalRoots - 16-step boolean array indicating which rhythm steps act as fractal anchors
+     * @param {Array<number>} fullBassProgression - Raw MIDI values representing the 64-bar bass progression
+     * @param {number} globalSequencerStep - Total absolute step of the running sequencer (0-1023)
      */
     getNextNote(
         chord,
@@ -79,27 +52,81 @@ export class ArpGenerator {
         maxPitch = 96,
         bassConflictMode = "resolve-consonant",
         gateRandomness = 0,
-        fractalFluency = 0,
-        fractalDim = 1.0
+        fractalIntensity = 0,
+        fractalScale = 4,
+        fractalResolutions = 3,
+        fractalRoots = [],
+        fullBassProgression = [],
+        globalSequencerStep = 0
     ) {
-        // Generate our primary 1/f self-similar pink noise value
-        const fNoise = this.getFractalNoise();
+        // --- Structural Fractal Fluency Calculation ---
+        // Proper Fractal Fluency is calculated relative to the nearest step that acts as a "Fractal Fluency Root" (Anchor).
+        // It samples deviations of the main bass progression across nested, multi-scale resolution boundaries.
+        let fractalFluencyOffset = 0;
+        let fractalFluencyVelocityMod = 0;
 
-        // Transform the noise using our spectral exponent dimension (alpha)
-        // alpha near 0 = White noise, 1.0 = Pink noise (organic/fluent), 2.0 = Brownian (smooth walk)
-        let alphaNoise = fNoise;
-        if (fractalDim !== 1.0) {
-            // Apply exponential scaling mapping to modify spectral behavior
-            alphaNoise = Math.pow(fNoise, fractalDim);
+        if (fractalIntensity > 0 && fullBassProgression && fullBassProgression.length > 0) {
+            const stepInBar = globalSequencerStep % 16;
+
+            // Find the closest step index that is designated as a Fractal Root (Anchor) in our sequencer.
+            // If none are set, default to standard downbeats (every 4 steps).
+            let anchorStep = -1;
+            let minDistance = 999;
+            const checkRoots = (fractalRoots && fractalRoots.length === 16) ? fractalRoots : [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false];
+
+            for (let i = 0; i < 16; i++) {
+                if (checkRoots[i]) {
+                    const dist = Math.abs(stepInBar - i);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        anchorStep = i;
+                    }
+                }
+            }
+            if (anchorStep === -1) anchorStep = 0; // fallback
+
+            const absoluteAnchorIndex = globalSequencerStep - stepInBar + anchorStep;
+
+            // Sample structural progression deviations at nested fractal resolutions.
+            // Resolutions determine our nested layers (e.g. 1 bar, 2 bars, 4 bars, 8 bars offset).
+            let combinedDeviation = 0;
+            let totalWeight = 0;
+
+            const scaleFactor = Math.max(1, Math.floor(fractalScale));
+            const numResolutions = Math.max(1, Math.min(4, fractalResolutions));
+
+            for (let r = 0; r < numResolutions; r++) {
+                // Resolution window: scaleFactor ^ r (e.g., 4^0=1, 4^1=4, 4^2=16 absolute steps)
+                const windowSize = Math.pow(scaleFactor, r);
+                const weight = 1.0 / (r + 1); // 1/f spectral attenuation weight for higher resolutions
+
+                // Query the main bass progression values at boundaries
+                const sampleIdx1 = Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex - windowSize));
+                const sampleIdx2 = Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex + windowSize));
+
+                const val1 = fullBassProgression[sampleIdx1] || 36;
+                const val2 = fullBassProgression[sampleIdx2] || 36;
+                const valAnchor = fullBassProgression[Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex))] || 36;
+
+                // Relative deviation calculation
+                const dev = ((val1 + val2) / 2.0) - valAnchor;
+                combinedDeviation += dev * weight;
+                totalWeight += weight;
+            }
+
+            const normalizedDeviation = totalWeight > 0 ? (combinedDeviation / totalWeight) : 0;
+            const intensityCoeff = fractalIntensity / 100.0;
+
+            // Convert normalized deviation into scale offset transpositions and velocity dynamics
+            fractalFluencyOffset = Math.round(normalizedDeviation * intensityCoeff);
+            fractalFluencyVelocityMod = Math.round(normalizedDeviation * 15 * intensityCoeff);
         }
-
-        const fluencyCoeff = fractalFluency / 100.0;
 
         // 1. Fractal-influenced density filter
         let adjustedDensity = density;
-        if (fractalFluency > 0) {
-            // Modulate density by fractal noise, creating beautiful long-term patterns of sparseness/density
-            const densityMod = (alphaNoise - 0.5) * 50 * fluencyCoeff;
+        if (fractalIntensity > 0) {
+            // Modulate density by fractal offset to introduce waves of organic sparseness/density
+            const densityMod = (fractalFluencyOffset % 3) * 10;
             adjustedDensity = Math.max(10, Math.min(100, density + densityMod));
         }
 
@@ -133,7 +160,7 @@ export class ArpGenerator {
             }
         }
 
-        // Density filter
+        // Density check
         if (skipTrigger || (Math.random() * 100 > adjustedDensity)) {
             this.index++;
             return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
@@ -172,13 +199,12 @@ export class ArpGenerator {
             noteIdx = this.index % len;
         }
 
-        // Apply a small fractal offset jump to note indices to create self-similar intervals
-        if (fractalFluency > 0 && len > 2) {
-            const indexShift = Math.floor((alphaNoise - 0.5) * len * fluencyCoeff);
-            noteIdx = Math.abs((noteIdx + indexShift) % len);
-        }
-
         let targetNote = notes[noteIdx] || notes[0];
+
+        // Apply our proper Fractal Fluency pitch transpositions!
+        if (fractalIntensity > 0) {
+            targetNote += fractalFluencyOffset;
+        }
 
         // 3. Chromatic / Bebop Passing Enclosures
         if (order === "enclosure" && len > 1) {
@@ -253,16 +279,31 @@ export class ArpGenerator {
         }
         targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
 
-        // 8. Passing Tone Mutation Generator (Dynamic Melodic Tension)
-        let isMutated = false;
-        let adjustedMutationRate = mutationRate;
-        if (fractalFluency > 0) {
-            // Modulate mutation rate fractally (giving waves of organic outside tones)
-            const mutationMod = (alphaNoise - 0.5) * 30 * fluencyCoeff;
-            adjustedMutationRate = Math.max(0, Math.min(100, mutationRate + mutationMod));
+        // 8. Dynamic Chord scale snapping: Force our fractal-altered notes back to beautiful chord degrees
+        if (fractalIntensity > 0 && notes.length > 0) {
+            // Find the closest valid chord degree (relative to octave transpositions)
+            let closestNote = notes[0];
+            let closestDist = 999;
+            for (let i = 0; i < 4; i++) { // search across nearby octaves
+                const octShift = (i - 1) * 12;
+                for (let k = 0; k < notes.length; k++) {
+                    const candidate = notes[k] + octShift;
+                    const d = Math.abs(targetNote - candidate);
+                    if (d < closestDist) {
+                        closestDist = d;
+                        closestNote = candidate;
+                    }
+                }
+            }
+            // Blend original arpeggio pitch towards scale/chord snap limits based on fractal intensity
+            if (closestDist > 0) {
+                targetNote = closestNote;
+            }
         }
 
-        if (Math.random() * 100 < adjustedMutationRate) {
+        // 9. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        let isMutated = false;
+        if (Math.random() * 100 < mutationRate) {
             const mutationInterval = Math.random() > 0.5 ? 2 : -1;
             const mutatedCandidate = targetNote + mutationInterval;
             if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
@@ -271,7 +312,7 @@ export class ArpGenerator {
             }
         }
 
-        // 9. Advanced Accent & Velocity Modeling
+        // 10. Advanced Accent & Velocity Modeling
         let velocity = 85;
         let isGhost = false;
 
@@ -292,11 +333,9 @@ export class ArpGenerator {
             velocity = Math.floor(normalBase * tensionMultiplier);
         }
 
-        // Fractal velocity modulation
-        if (fractalFluency > 0) {
-            // Create long-term dynamic rises and falls of volume
-            const velocityMod = Math.floor((alphaNoise - 0.5) * 45 * fluencyCoeff);
-            velocity += velocityMod;
+        // Apply our proper Fractal Fluency dynamic velocity changes
+        if (fractalIntensity > 0) {
+            velocity += fractalFluencyVelocityMod;
         }
 
         // Custom Velocity Randomness Slider Influence
@@ -308,24 +347,16 @@ export class ArpGenerator {
 
         velocity = Math.max(5, Math.min(127, velocity));
 
-        // 10. Gate Randomness and Fractal Gate Modulation
+        // 11. Gate Randomness and Fractal Gate Modulation
         let gateModifier = 1.0;
-        let adjustedGateRand = gateRandomness;
-
-        if (fractalFluency > 0) {
-            // Mutate gate randomness fractally
-            const gateRandMod = (alphaNoise - 0.5) * 25 * fluencyCoeff;
-            adjustedGateRand = Math.max(0, Math.min(100, gateRandomness + gateRandMod));
-        }
-
-        if (adjustedGateRand > 0) {
-            const maxGateJitter = (adjustedGateRand / 100) * 0.5;
+        if (gateRandomness > 0) {
+            const maxGateJitter = (gateRandomness / 100) * 0.5;
             gateModifier = 1.0 + (Math.random() - 0.5) * 2 * maxGateJitter;
         }
 
-        // Additionally apply long-term fractal gate swelling/shortening
-        if (fractalFluency > 0) {
-            const fractalGateSwell = (alphaNoise - 0.5) * 0.4 * fluencyCoeff;
+        // Swell gate modification by the fractal fluency offset values
+        if (fractalIntensity > 0) {
+            const fractalGateSwell = (fractalFluencyOffset % 3) * 0.15;
             gateModifier += fractalGateSwell;
         }
 
