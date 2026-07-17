@@ -942,7 +942,8 @@ const midiManager = new MidiManager();
 // --- MODULE: complex/js/arp/arpGenerator.js ---
 // Highly expressive, multi-algorithm generative arpeggiator engine
 // Upgraded with resolution-independent virtual steps, velocity randomness,
-// interval spread, and syncopated rhythmic complexity modes.
+// interval spread, syncopated rhythmic complexity modes, strict pitch bounds,
+// advanced bass conflict modes, and dynamic gate length randomness.
 class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -964,6 +965,10 @@ class ArpGenerator {
      * @param {number} velocityRandomness - Variance in dynamic range (0-100)
      * @param {number} spread - Interval spread voicing mode (0 = Closed, 1 = Fifth alternate, 2 = Octave alternate, 3 = Wide fifth-octave alternate)
      * @param {string} rhythmMode - Complexity modes ('standard', 'syncopated', 'dotted', 'ratchet')
+     * @param {number} minPitch - Lower MIDI bound (36-127)
+     * @param {number} maxPitch - Upper MIDI bound (36-127)
+     * @param {string} bassConflictMode - Action style on register clashing ('ignore', 'shift-octave', 'resolve-consonant', 'drop-note')
+     * @param {number} gateRandomness - Percent variation in note duration (0-100)
      */
     getNextNote(
         chord,
@@ -978,7 +983,11 @@ class ArpGenerator {
         bassNote = 36,
         velocityRandomness = 15,
         spread = 0,
-        rhythmMode = "standard"
+        rhythmMode = "standard",
+        minPitch = 48,
+        maxPitch = 96,
+        bassConflictMode = "resolve-consonant",
+        gateRandomness = 0
     ) {
         // 1. Rhythm complexity filters
         let skipTrigger = false;
@@ -1018,12 +1027,12 @@ class ArpGenerator {
         // Density filter: if random threshold is not met or skipTrigger is active, do not play
         if (skipTrigger || (Math.random() * 100 > density)) {
             this.index++; // Keep advancing the index so we don't stagnate on the same note
-            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+            return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
         }
 
         if (!chord || !chord.notes || chord.notes.length === 0) {
             this.index++;
-            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+            return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
         }
 
         const notes = chord.notes;
@@ -1106,32 +1115,60 @@ class ArpGenerator {
 
         targetNote += octOffset * 12;
 
-        // 6. Bass-Contextual Harmonic Filtering (Avoid muddy frequencies & minor second interval clashes)
-        if (bassNote > 0) {
-            // Shift arpeggio up by octaves if it gets too close to the bass range (within 12 semitones)
-            while (targetNote <= bassNote + 12) {
-                targetNote += 12;
-            }
+        // 6. Bass-Contextual Harmonic Filtering & Advanced Conflict Resolution Strategies
+        if (bassNote > 0 && bassConflictMode !== "ignore") {
+            const diff = Math.abs(targetNote - bassNote);
 
-            // Resolve minor second clashing intervals against the bass note (e.g. adjust to nearest third or perfect fourth)
-            const intervalDiff = Math.abs(targetNote - bassNote) % 12;
-            if (intervalDiff === 1) {
-                targetNote += 1; // Shift half-step up to make it a major second
-            } else if (intervalDiff === 11) {
-                targetNote += 1; // Resolve minor seventh clashing boundaries upwards
+            if (bassConflictMode === "shift-octave") {
+                // Ensure arpeggio stays at least 1 octave higher than active bass register
+                while (targetNote <= bassNote + 12) {
+                    targetNote += 12;
+                }
+            } else if (bassConflictMode === "resolve-consonant") {
+                // Shift or snap clashing intervals (minor seconds, tritones) to pleasant chord degrees
+                const intervalDiff = diff % 12;
+                if (intervalDiff === 1) {
+                    targetNote += 1; // major second
+                } else if (intervalDiff === 6) {
+                    targetNote += 1; // perfect fifth
+                } else if (intervalDiff === 11) {
+                    targetNote += 1; // perfect octave
+                }
+            } else if (bassConflictMode === "drop-note") {
+                // Drop trigger if notes are physically within major/minor second or octave boundary clashes
+                const intervalDiff = diff % 12;
+                if (diff < 12 || intervalDiff === 1 || intervalDiff === 2) {
+                    this.index++;
+                    return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
+                }
             }
         }
 
-        // 7. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        // 7. Strict Pitch Limits Clamping
+        // Ensure note is bounds-aligned. Transpose by octave up/down rather than flat clipping to preserve pitch class
+        while (targetNote < minPitch) {
+            targetNote += 12;
+        }
+        while (targetNote > maxPitch) {
+            targetNote -= 12;
+        }
+
+        // Double check bounds to clamp safely in case minPitch/maxPitch is extremely narrow
+        targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
+
+        // 8. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (Math.random() * 100 < mutationRate) {
             // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
             const mutationInterval = Math.random() > 0.5 ? 2 : -1;
-            targetNote += mutationInterval;
-            isMutated = true;
+            const mutatedCandidate = targetNote + mutationInterval;
+            if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
+                targetNote = mutatedCandidate;
+                isMutated = true;
+            }
         }
 
-        // 8. Advanced Accent & Velocity Modeling
+        // 9. Advanced Accent & Velocity Modeling
         let velocity = 85;
         let isGhost = false;
 
@@ -1156,7 +1193,7 @@ class ArpGenerator {
             velocity = Math.floor(normalBase * tensionMultiplier);
         }
 
-        // 9. Custom Velocity Randomness Slider Influence
+        // Custom Velocity Randomness Slider Influence
         if (velocityRandomness > 0) {
             const maxJitter = (velocityRandomness / 100) * 45;
             const jitter = Math.floor((Math.random() - 0.5) * 2 * maxJitter);
@@ -1165,6 +1202,14 @@ class ArpGenerator {
 
         velocity = Math.max(5, Math.min(127, velocity));
 
+        // 10. Gate Randomness Scale Calculation
+        let gateModifier = 1.0;
+        if (gateRandomness > 0) {
+            const maxGateJitter = (gateRandomness / 100) * 0.5; // up to 50% change
+            gateModifier = 1.0 + (Math.random() - 0.5) * 2 * maxGateJitter;
+            gateModifier = Math.max(0.1, Math.min(2.0, gateModifier));
+        }
+
         this.index++;
 
         return {
@@ -1172,7 +1217,8 @@ class ArpGenerator {
             velocity,
             isGhost,
             isMutated,
-            trigger: true
+            trigger: true,
+            gateModifier
         };
     }
 }
@@ -2097,6 +2143,12 @@ function scheduleStep(stepIndex, time) {
         const spread = parseInt(document.getElementById("selectArpSpread").value || "0");
         const rhythmMode = document.getElementById("selectArpRhythmMode").value || "standard";
 
+        // Extract new advanced boundaries and resolution strategies
+        const minPitch = parseInt(document.getElementById("sliderArpMinPitch").value || "48");
+        const maxPitch = parseInt(document.getElementById("sliderArpMaxPitch").value || "96");
+        const bassConflictMode = document.getElementById("selectArpBassConflict").value || "resolve-consonant";
+        const gateRandomness = parseInt(document.getElementById("sliderArpGateRand").value || "0");
+
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
         const numSubdivisions = arpTempoMultiplier >= 1 ? Math.floor(arpTempoMultiplier) : 1;
@@ -2127,7 +2179,11 @@ function scheduleStep(stepIndex, time) {
                 activeBassMidi,
                 velocityRandomness,
                 spread,
-                rhythmMode
+                rhythmMode,
+                minPitch,
+                maxPitch,
+                bassConflictMode,
+                gateRandomness
             );
 
             if (arpRes.trigger) {
@@ -2140,8 +2196,9 @@ function scheduleStep(stepIndex, time) {
                 // Position subdivisions sequentially inside the step timeframe boundaries
                 const triggerTime = time + (sub * subdivisionSpacer) + humanizedDelay;
 
-                // Scale duration multiplier based on division rate & gate ratio settings
-                const gateMultiplier = (gatePerc / 100.0) / numSubdivisions;
+                // Scale duration multiplier based on division rate & gate ratio settings, applying our dynamic gateRandomness modifier
+                const arpGateModifier = (arpRes.gateModifier !== undefined) ? arpRes.gateModifier : 1.0;
+                const gateMultiplier = ((gatePerc / 100.0) / numSubdivisions) * arpGateModifier;
 
                 // Trigger voices with dynamic velocity and gate parameters
                 const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
@@ -2460,7 +2517,10 @@ function bindUIEvents() {
         { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
         { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
         { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} },
-        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} }
+        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} },
+        { id: "sliderArpMinPitch", lbl: "lblArpMinPitch", action: () => {} },
+        { id: "sliderArpMaxPitch", lbl: "lblArpMaxPitch", action: () => {} },
+        { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {

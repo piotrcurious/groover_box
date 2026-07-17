@@ -213,6 +213,12 @@ function scheduleStep(stepIndex, time) {
         const spread = parseInt(document.getElementById("selectArpSpread").value || "0");
         const rhythmMode = document.getElementById("selectArpRhythmMode").value || "standard";
 
+        // Extract new advanced boundaries and resolution strategies
+        const minPitch = parseInt(document.getElementById("sliderArpMinPitch").value || "48");
+        const maxPitch = parseInt(document.getElementById("sliderArpMaxPitch").value || "96");
+        const bassConflictMode = document.getElementById("selectArpBassConflict").value || "resolve-consonant";
+        const gateRandomness = parseInt(document.getElementById("sliderArpGateRand").value || "0");
+
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
         const numSubdivisions = arpTempoMultiplier >= 1 ? Math.floor(arpTempoMultiplier) : 1;
@@ -243,7 +249,11 @@ function scheduleStep(stepIndex, time) {
                 activeBassMidi,
                 velocityRandomness,
                 spread,
-                rhythmMode
+                rhythmMode,
+                minPitch,
+                maxPitch,
+                bassConflictMode,
+                gateRandomness
             );
 
             if (arpRes.trigger) {
@@ -256,8 +266,9 @@ function scheduleStep(stepIndex, time) {
                 // Position subdivisions sequentially inside the step timeframe boundaries
                 const triggerTime = time + (sub * subdivisionSpacer) + humanizedDelay;
 
-                // Scale duration multiplier based on division rate & gate ratio settings
-                const gateMultiplier = (gatePerc / 100.0) / numSubdivisions;
+                // Scale duration multiplier based on division rate & gate ratio settings, applying our dynamic gateRandomness modifier
+                const arpGateModifier = (arpRes.gateModifier !== undefined) ? arpRes.gateModifier : 1.0;
+                const gateMultiplier = ((gatePerc / 100.0) / numSubdivisions) * arpGateModifier;
 
                 // Trigger voices with dynamic velocity and gate parameters
                 const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
@@ -576,7 +587,10 @@ function bindUIEvents() {
         { id: "sliderArpMutation", lbl: "lblArpMutation", action: () => {} },
         { id: "sliderArpHumanize", lbl: "lblArpHumanize", action: () => {} },
         { id: "sliderArpGate", lbl: "lblArpGate", action: () => {} },
-        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} }
+        { id: "sliderArpVelocityRand", lbl: "lblArpVelocityRand", action: () => {} },
+        { id: "sliderArpMinPitch", lbl: "lblArpMinPitch", action: () => {} },
+        { id: "sliderArpMaxPitch", lbl: "lblArpMaxPitch", action: () => {} },
+        { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {

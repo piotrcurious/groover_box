@@ -486,6 +486,31 @@
                         </select>
                     </div>
                 </div>
+                <div class="control-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: 4px;">
+                    <div class="control-group">
+                        <label>Min MIDI Pitch <span id="lblArpMinPitch">48</span></label>
+                        <input type="range" id="sliderArpMinPitch" min="36" max="96" value="48">
+                    </div>
+                    <div class="control-group">
+                        <label>Max MIDI Pitch <span id="lblArpMaxPitch">96</span></label>
+                        <input type="range" id="sliderArpMaxPitch" min="60" max="120" value="96">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group">
+                        <label>Gate Randomness <span id="lblArpGateRand">0</span>%</label>
+                        <input type="range" id="sliderArpGateRand" min="0" max="100" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>Bass Conflict Mode</label>
+                        <select id="selectArpBassConflict">
+                            <option value="ignore">Ignore Conflict</option>
+                            <option value="shift-octave">Shift Octave Up</option>
+                            <option value="resolve-consonant" selected>Resolve Consonant</option>
+                            <option value="drop-note">Drop Clashing Notes</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <!-- Tonnetz & Harmonic Spectrum Visualizers -->

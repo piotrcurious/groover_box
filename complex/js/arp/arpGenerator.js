@@ -1,6 +1,7 @@
 // Highly expressive, multi-algorithm generative arpeggiator engine
 // Upgraded with resolution-independent virtual steps, velocity randomness,
-// interval spread, and syncopated rhythmic complexity modes.
+// interval spread, syncopated rhythmic complexity modes, strict pitch bounds,
+// advanced bass conflict modes, and dynamic gate length randomness.
 export class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -22,6 +23,10 @@ export class ArpGenerator {
      * @param {number} velocityRandomness - Variance in dynamic range (0-100)
      * @param {number} spread - Interval spread voicing mode (0 = Closed, 1 = Fifth alternate, 2 = Octave alternate, 3 = Wide fifth-octave alternate)
      * @param {string} rhythmMode - Complexity modes ('standard', 'syncopated', 'dotted', 'ratchet')
+     * @param {number} minPitch - Lower MIDI bound (36-127)
+     * @param {number} maxPitch - Upper MIDI bound (36-127)
+     * @param {string} bassConflictMode - Action style on register clashing ('ignore', 'shift-octave', 'resolve-consonant', 'drop-note')
+     * @param {number} gateRandomness - Percent variation in note duration (0-100)
      */
     getNextNote(
         chord,
@@ -36,7 +41,11 @@ export class ArpGenerator {
         bassNote = 36,
         velocityRandomness = 15,
         spread = 0,
-        rhythmMode = "standard"
+        rhythmMode = "standard",
+        minPitch = 48,
+        maxPitch = 96,
+        bassConflictMode = "resolve-consonant",
+        gateRandomness = 0
     ) {
         // 1. Rhythm complexity filters
         let skipTrigger = false;
@@ -76,12 +85,12 @@ export class ArpGenerator {
         // Density filter: if random threshold is not met or skipTrigger is active, do not play
         if (skipTrigger || (Math.random() * 100 > density)) {
             this.index++; // Keep advancing the index so we don't stagnate on the same note
-            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+            return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
         }
 
         if (!chord || !chord.notes || chord.notes.length === 0) {
             this.index++;
-            return { note: 60, velocity: 0, isGhost: false, trigger: false };
+            return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
         }
 
         const notes = chord.notes;
@@ -164,32 +173,60 @@ export class ArpGenerator {
 
         targetNote += octOffset * 12;
 
-        // 6. Bass-Contextual Harmonic Filtering (Avoid muddy frequencies & minor second interval clashes)
-        if (bassNote > 0) {
-            // Shift arpeggio up by octaves if it gets too close to the bass range (within 12 semitones)
-            while (targetNote <= bassNote + 12) {
-                targetNote += 12;
-            }
+        // 6. Bass-Contextual Harmonic Filtering & Advanced Conflict Resolution Strategies
+        if (bassNote > 0 && bassConflictMode !== "ignore") {
+            const diff = Math.abs(targetNote - bassNote);
 
-            // Resolve minor second clashing intervals against the bass note (e.g. adjust to nearest third or perfect fourth)
-            const intervalDiff = Math.abs(targetNote - bassNote) % 12;
-            if (intervalDiff === 1) {
-                targetNote += 1; // Shift half-step up to make it a major second
-            } else if (intervalDiff === 11) {
-                targetNote += 1; // Resolve minor seventh clashing boundaries upwards
+            if (bassConflictMode === "shift-octave") {
+                // Ensure arpeggio stays at least 1 octave higher than active bass register
+                while (targetNote <= bassNote + 12) {
+                    targetNote += 12;
+                }
+            } else if (bassConflictMode === "resolve-consonant") {
+                // Shift or snap clashing intervals (minor seconds, tritones) to pleasant chord degrees
+                const intervalDiff = diff % 12;
+                if (intervalDiff === 1) {
+                    targetNote += 1; // major second
+                } else if (intervalDiff === 6) {
+                    targetNote += 1; // perfect fifth
+                } else if (intervalDiff === 11) {
+                    targetNote += 1; // perfect octave
+                }
+            } else if (bassConflictMode === "drop-note") {
+                // Drop trigger if notes are physically within major/minor second or octave boundary clashes
+                const intervalDiff = diff % 12;
+                if (diff < 12 || intervalDiff === 1 || intervalDiff === 2) {
+                    this.index++;
+                    return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
+                }
             }
         }
 
-        // 7. Passing Tone Mutation Generator (Dynamic Melodic Tension)
+        // 7. Strict Pitch Limits Clamping
+        // Ensure note is bounds-aligned. Transpose by octave up/down rather than flat clipping to preserve pitch class
+        while (targetNote < minPitch) {
+            targetNote += 12;
+        }
+        while (targetNote > maxPitch) {
+            targetNote -= 12;
+        }
+
+        // Double check bounds to clamp safely in case minPitch/maxPitch is extremely narrow
+        targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
+
+        // 8. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (Math.random() * 100 < mutationRate) {
             // Mutate note by +/- 1 or 2 semitones to introduce jazz passing tones
             const mutationInterval = Math.random() > 0.5 ? 2 : -1;
-            targetNote += mutationInterval;
-            isMutated = true;
+            const mutatedCandidate = targetNote + mutationInterval;
+            if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
+                targetNote = mutatedCandidate;
+                isMutated = true;
+            }
         }
 
-        // 8. Advanced Accent & Velocity Modeling
+        // 9. Advanced Accent & Velocity Modeling
         let velocity = 85;
         let isGhost = false;
 
@@ -214,7 +251,7 @@ export class ArpGenerator {
             velocity = Math.floor(normalBase * tensionMultiplier);
         }
 
-        // 9. Custom Velocity Randomness Slider Influence
+        // Custom Velocity Randomness Slider Influence
         if (velocityRandomness > 0) {
             const maxJitter = (velocityRandomness / 100) * 45;
             const jitter = Math.floor((Math.random() - 0.5) * 2 * maxJitter);
@@ -223,6 +260,14 @@ export class ArpGenerator {
 
         velocity = Math.max(5, Math.min(127, velocity));
 
+        // 10. Gate Randomness Scale Calculation
+        let gateModifier = 1.0;
+        if (gateRandomness > 0) {
+            const maxGateJitter = (gateRandomness / 100) * 0.5; // up to 50% change
+            gateModifier = 1.0 + (Math.random() - 0.5) * 2 * maxGateJitter;
+            gateModifier = Math.max(0.1, Math.min(2.0, gateModifier));
+        }
+
         this.index++;
 
         return {
@@ -230,7 +275,8 @@ export class ArpGenerator {
             velocity,
             isGhost,
             isMutated,
-            trigger: true
+            trigger: true,
+            gateModifier
         };
     }
 }
