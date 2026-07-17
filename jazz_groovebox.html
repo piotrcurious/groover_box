@@ -1188,15 +1188,33 @@
 
         for (let i = 0; i < voiced.length; i++) {
             let target = voiced[i];
-            let anchor = ref[i % ref.length];
+
+            // Smart Neighbor Matching: Find the closest note in the reference chord to use as anchor
+            let anchor = ref[0];
+            let minAnchorDist = Math.abs(ref[0] - target);
+            for (let j = 1; j < ref.length; j++) {
+                let d = Math.abs(ref[j] - target);
+                if (d < minAnchorDist) {
+                    minAnchorDist = d;
+                    anchor = ref[j];
+                }
+            }
+
             let pClass = target % 12;
             let bestNote = target;
-            let minDistance = 9999;
+            let minScore = 99999;
             for (let oct = -36; oct <= 36; oct += 12) {
                 let candidate = (Math.floor(anchor / 12) * 12) + pClass + oct;
-                let dist = Math.abs(candidate - anchor);
-                if (dist < minDistance) {
-                    minDistance = dist;
+
+                // Keep within reasonable voiced limits
+                if (candidate < 38 || candidate > 88) continue;
+
+                let distToAnchor = Math.abs(candidate - anchor);
+                let distToOriginal = Math.abs(candidate - target);
+                let score = distToAnchor + 0.4 * distToOriginal; // Balance smooth voice leading with center register force
+
+                if (score < minScore) {
+                    minScore = score;
                     bestNote = candidate;
                 }
             }
@@ -1631,6 +1649,15 @@
 
         // Drop 2 octaves for deep funky bass
         let bassMidi = baseMidiNote - 24;
+
+        // Auto-transposition: Ensure bass remains in the optimal, punchy, and fully audible register (MIDI 24 to 48)
+        while (bassMidi < 24) {
+            bassMidi += 12;
+        }
+        while (bassMidi > 48) {
+            bassMidi -= 12;
+        }
+
         let frequency = midiToFrequency(bassMidi, tuningSystem, driftCents);
 
         const osc1 = audioCtx.createOscillator();
