@@ -549,6 +549,157 @@
         .dna-bar.is-bridge {
             background-color: var(--accent-bridge);
         }
+
+        /* --- 64-BAR MASTER STACK SEQUENCER STYLES --- */
+        .master-sequencer-scroll {
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scroll-behavior: smooth;
+        }
+
+        /* Sleek Cyber Scrollbar */
+        .master-sequencer-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-track {
+            background: #090c12;
+            border-radius: 4px;
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-thumb {
+            background: #1f2736;
+            border-radius: 4px;
+            border: 1px solid var(--panel-border);
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-base);
+        }
+
+        .sequencer-pair-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Responsive stack on mobile/smaller screens */
+        @media (max-width: 900px) {
+            .sequencer-pair-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
+        .sequencer-bar-card {
+            background: #0f131a;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+
+        .sequencer-bar-card.base-bar {
+            border-left: 4px solid #10b981; /* Green Consonant Base Line */
+        }
+
+        .sequencer-bar-card.bridge-bar {
+            border-left: 4px solid var(--accent-bridge); /* Pink Tense Bridge Line */
+        }
+
+        .sequencer-bar-card:hover {
+            background: #141924;
+            border-color: #3b465e;
+        }
+
+        .sequencer-bar-card.selected-card {
+            border-color: rgba(0, 242, 254, 0.4);
+            background: #121822;
+            box-shadow: inset 0 0 6px rgba(0, 242, 254, 0.1);
+        }
+
+        .sequencer-bar-card.active-card {
+            border-color: var(--accent-base);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25), inset 0 0 4px rgba(0, 242, 254, 0.15);
+        }
+
+        .bar-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.76rem;
+            font-weight: bold;
+        }
+
+        .bar-title {
+            color: var(--text-muted);
+        }
+
+        .sequencer-bar-card.selected-card .bar-title {
+            color: var(--accent-base);
+        }
+
+        .bar-chord-name {
+            font-weight: 800;
+        }
+
+        .compact-grid-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid-icon {
+            font-size: 0.8rem;
+            width: 14px;
+            text-align: center;
+        }
+
+        .compact-steps {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 4px;
+            flex-grow: 1;
+        }
+
+        .compact-step-cell {
+            aspect-ratio: 0.8;
+            background-color: var(--grid-off);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.08s;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .compact-step-cell:hover {
+            background-color: #242c3a;
+        }
+
+        /* Beat markings */
+        .compact-step-cell:nth-child(4n+1) {
+            border-left: 1.5px solid #4a5568;
+        }
+
+        .compact-step-cell.riddim-active {
+            background-color: var(--accent-bridge);
+            box-shadow: 0 0 8px var(--accent-bridge);
+        }
+
+        .compact-step-cell.arp-active {
+            background-color: var(--accent-base);
+            box-shadow: 0 0 8px var(--accent-base);
+        }
+
+        .compact-step-cell.current-playhead {
+            outline: 2px solid #ffffff;
+            z-index: 5;
+            box-shadow: 0 0 10px #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -874,23 +1025,100 @@
                 <label>Arp Filter Decay: <span id="arpDecayVal">150 ms</span></label>
                 <input type="range" id="arpFilterDecay" min="30" max="500" value="150">
             </div>
+
+            <!-- Voice Editors Section -->
+            <div class="panel-header" style="margin-top: 10px;">
+                <span class="panel-title">🎚️ Synthesizer Voice Editors</span>
+            </div>
+
+            <!-- Bass Voice Parameters -->
+            <div style="background-color: rgba(255,255,255,0.015); padding: 12px; border-radius: 6px; border: 1px solid var(--panel-border); margin-bottom: 12px;">
+                <strong style="color: var(--accent-bridge); font-size: 0.8rem; display: block; margin-bottom: 8px;">🎸 Bass Synth Voice</strong>
+                <div class="control-group" style="margin-bottom: 8px;">
+                    <label>Bass Volume: <span id="bassVolVal">70%</span></label>
+                    <input type="range" id="bassVol" min="0" max="100" value="70">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Attack: <span id="bassAttackVal">15 ms</span></label>
+                        <input type="range" id="bassAttack" min="5" max="300" value="15">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Decay: <span id="bassDecayVal">300 ms</span></label>
+                        <input type="range" id="bassDecay" min="30" max="1000" value="300">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Sustain: <span id="bassSustainVal">10%</span></label>
+                        <input type="range" id="bassSustain" min="0" max="100" value="10">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Release: <span id="bassReleaseVal">100 ms</span></label>
+                        <input type="range" id="bassRelease" min="30" max="1000" value="100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arp Voice Parameters -->
+            <div style="background-color: rgba(255,255,255,0.015); padding: 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                <strong style="color: var(--accent-base); font-size: 0.8rem; display: block; margin-bottom: 8px;">🌀 Arp Synth Voice</strong>
+                <div class="control-group" style="margin-bottom: 8px;">
+                    <label>Arp Volume: <span id="arpVolVal">35%</span></label>
+                    <input type="range" id="arpVol" min="0" max="100" value="35">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Attack: <span id="arpAttackVal">8 ms</span></label>
+                        <input type="range" id="arpAttack" min="5" max="300" value="8">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Decay: <span id="arpDecayVal">150 ms</span></label>
+                        <input type="range" id="arpDecay" min="30" max="1000" value="150">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Sustain: <span id="arpSustainVal">20%</span></label>
+                        <input type="range" id="arpSustain" min="0" max="100" value="20">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Release: <span id="arpReleaseVal">150 ms</span></label>
+                        <input type="range" id="arpRelease" min="30" max="1000" value="150">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Main Workspace -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- 64 Bar Beat Box Grid -->
+            <!-- 64-Bar Master Stack Sequencer (Dual Channel) -->
             <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">🗺️ 64-Bar Environment Grid (Click to Edit Bar)</span>
-                    <span id="editorBarIndicator" style="color: var(--accent-base); font-size: 0.8rem; font-weight: bold;">Editing: Bar 1</span>
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span class="panel-title">🎹 64-Bar Master Stack Sequencer (Dual Channel)</span>
+                    <span id="editorBarIndicator" style="color: var(--accent-base); font-size: 0.85rem; font-weight: bold; background: rgba(0, 242, 254, 0.05); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(0, 242, 254, 0.15);">Editing Focus: Bar 1</span>
                 </div>
-                <div class="bar-overview-container">
-                    <div class="bar-overview-grid" id="barOverviewGrid"></div>
+
+                <div class="sequencer-header-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px; background: #0c0f14; border-bottom: 1px solid var(--panel-border);">
+                    <div style="display: flex; gap: 10px; align-items: center; background: #131722; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                        <label style="margin:0; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                            🔁 Loop Range:
+                        </label>
+                        <select id="loopStart" style="background: #171d26; border: 1px solid var(--panel-border); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;"></select>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">to</span>
+                        <select id="loopEnd" style="background: #171d26; border: 1px solid var(--panel-border); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;"></select>
+                        <button class="btn btn-xs btn-primary" id="resetLoopBtn" style="margin-left: 4px;">All 64</button>
+                    </div>
+
+                    <div class="sequencer-quick-btns" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-xs" id="clearBarBtn">Clear Focus</button>
+                        <button class="btn btn-xs" id="randRiddimBtn">Rand Bass</button>
+                        <button class="btn btn-xs" id="randArpBtn">Rand Arp</button>
+                        <button class="btn btn-xs btn-danger" id="copyToAllBtn">Copy Focus to All</button>
+                    </div>
                 </div>
-                <div class="guide-banner">
-                    <h3>💡 Navigating the 64-Bar Space</h3>
-                    Left borders indicate bar structure: <strong style="color: var(--accent-base);">Consonant Bases</strong> are green; <strong style="color: var(--accent-bridge);">Tense Bridges</strong> are pink/red. Small dots show whether the bar contains programmed Riddim (pink dot) or Arp (teal dot) patterns.
+
+                <div style="padding: 16px;">
+                    <div class="master-sequencer-scroll" id="masterSequencerGrid">
+                        <!-- 32 rows of paired bars will be dynamically generated here -->
+                    </div>
                 </div>
             </div>
 
@@ -911,45 +1139,6 @@
                     <div class="chord-name-display" id="chordNameDisplay">No active chord...</div>
                     <div class="theory-info-panel" id="theoryExplanation">
                         Theory insights will populate here as the chords play, displaying cent deviations, interval formulas, and how the bridge pentatonic scale connects with the base tritone harmony.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step Sequencer Panel -->
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">🎛️ Beat Box Editor (16 Steps per Bar)</span>
-                </div>
-
-                <div class="sequencer-header-actions">
-                    <span class="sequencer-title" id="sequencerTitle">Bar 1 Step Sequencer</span>
-                    <div class="sequencer-quick-btns">
-                        <button class="btn btn-xs" id="prevBarBtn">◀ Prev Bar</button>
-                        <button class="btn btn-xs" id="nextBarBtn">Next Bar ▶</button>
-                        <button class="btn btn-xs" id="clearBarBtn">Clear Bar</button>
-                        <button class="btn btn-xs" id="randRiddimBtn">Rand Bass</button>
-                        <button class="btn btn-xs" id="randArpBtn">Rand Arp</button>
-                        <button class="btn btn-xs btn-danger" id="copyToAllBtn">Copy to All Bars</button>
-                    </div>
-                </div>
-
-                <div class="sequencer-grid-group">
-                    <!-- Riddim / Bass Trigger -->
-                    <div class="sequencer-row">
-                        <div class="row-label riddim-label">
-                            <span>🥁 Riddim / Bassline Trigger</span>
-                            <span>Bassline Beat Trigger</span>
-                        </div>
-                        <div class="step-grid" id="riddimGrid"></div>
-                    </div>
-
-                    <!-- Arpeggio Trigger -->
-                    <div class="sequencer-row">
-                        <div class="row-label arp-label">
-                            <span>🌀 Arpeggiator Trigger</span>
-                            <span>Arpeggio Rhythm Rhythm</span>
-                        </div>
-                        <div class="step-grid" id="arpGrid"></div>
                     </div>
                 </div>
             </div>
@@ -1475,7 +1664,7 @@
             referenceNotes = progression[b].notes; // cascade forward
         }
 
-        renderBarGrid();
+        renderMasterSequencer();
         updateTheoryPanel(editingBar);
     }
 
@@ -1715,10 +1904,23 @@
         filterNode.frequency.setValueAtTime(1500, time);
         filterNode.frequency.exponentialRampToValueAtTime(70, time + 0.3);
 
-        // Gain Amplitude Envelope to prevent click
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.7, time + 0.015);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.38);
+        // ADSR Envelope
+        let bVol = parseFloat(document.getElementById('bassVol').value) / 100;
+        let bAttack = parseFloat(document.getElementById('bassAttack').value) / 1000;
+        let bDecay = parseFloat(document.getElementById('bassDecay').value) / 1000;
+        let bSustain = parseFloat(document.getElementById('bassSustain').value) / 100;
+        let bRelease = parseFloat(document.getElementById('bassRelease').value) / 1000;
+
+        let totalDuration = 0.35; // bass step length
+
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(bVol, time + bAttack);
+        gainNode.gain.exponentialRampToValueAtTime(bVol * bSustain + 0.001, time + bAttack + bDecay);
+
+        // Schedule Release
+        let stopTime = time + totalDuration;
+        gainNode.gain.setValueAtTime(bVol * bSustain + 0.001, stopTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, stopTime + bRelease);
 
         // Connections
         osc1.connect(filterNode);
@@ -1729,8 +1931,8 @@
         // Start & Stop
         osc1.start(time);
         osc2.start(time);
-        osc1.stop(time + 0.4);
-        osc2.stop(time + 0.4);
+        osc1.stop(stopTime + bRelease + 0.05);
+        osc2.stop(stopTime + bRelease + 0.05);
 
         // Store active nodes
         activeSynthNodes.push(osc1, osc2);
@@ -1817,10 +2019,23 @@
         filterNode.frequency.exponentialRampToValueAtTime(peakCutoff, time + 0.02);
         filterNode.frequency.exponentialRampToValueAtTime(startCutoff, time + (decayMs / 1000));
 
-        // Pluck volume envelope
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.35, time + 0.008);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.18);
+        // ADSR Envelope
+        let aVol = parseFloat(document.getElementById('arpVol').value) / 100;
+        let aAttack = parseFloat(document.getElementById('arpAttack').value) / 1000;
+        let aDecay = parseFloat(document.getElementById('arpDecay').value) / 1000;
+        let aSustain = parseFloat(document.getElementById('arpSustain').value) / 100;
+        let aRelease = parseFloat(document.getElementById('arpRelease').value) / 1000;
+
+        let arpDuration = 0.18; // arp step length
+
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(aVol, time + aAttack);
+        gainNode.gain.exponentialRampToValueAtTime(aVol * aSustain + 0.001, time + aAttack + aDecay);
+
+        // Schedule Release
+        let arpStopTime = time + arpDuration;
+        gainNode.gain.setValueAtTime(aVol * aSustain + 0.001, arpStopTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, arpStopTime + aRelease);
 
         // Delay Echo Feedback Loop specifically for lush arpeggio
         const delayNode = audioCtx.createDelay();
@@ -1844,8 +2059,8 @@
         // Start & Stop
         osc.start(time);
         subOsc.start(time);
-        osc.stop(time + 0.25);
-        subOsc.stop(time + 0.25);
+        osc.stop(arpStopTime + aRelease + 0.05);
+        subOsc.stop(arpStopTime + aRelease + 0.05);
 
         // Store active nodes
         activeSynthNodes.push(osc, subOsc);
@@ -1853,7 +2068,55 @@
         arpNoteWalkCount++;
     }
 
-    // --- 5. SEQUENCER CORE SCHEDULER ---
+    // --- 5. SEQUENCER CORE SCHEDULER & PLAYHEAD ENGINE ---
+
+    let lastPlayingBar = -1;
+    let lastPlayingStep = -1;
+
+    function updatePlayheadUI(bar, stepInBar, chordData) {
+        // Update general status displays
+        document.getElementById('playingBarDisplay').innerText = `Bar ${bar + 1} / 64`;
+        document.getElementById('playingChordDisplay').innerText = chordData ? chordData.name : "";
+        if (chordData) {
+            document.getElementById('tensionTypeDisplay').innerText = chordData.isBridge ? "Tense Bridge" : "Consonant Base";
+            document.getElementById('tensionTypeDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+            document.getElementById('chordNameDisplay').innerText = chordData.name;
+            document.getElementById('chordNameDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+        }
+
+        // 1. Remove active-card and current-playhead classes from last played step/bar
+        if (lastPlayingBar !== -1) {
+            const lastCard = document.getElementById(`bar-card-${lastPlayingBar}`);
+            if (lastCard) lastCard.classList.remove('active-card');
+
+            const lastRCell = document.getElementById(`riddim-cell-${lastPlayingBar}-${lastPlayingStep}`);
+            if (lastRCell) lastRCell.classList.remove('current-playhead');
+
+            const lastACell = document.getElementById(`arp-cell-${lastPlayingBar}-${lastPlayingStep}`);
+            if (lastACell) lastACell.classList.remove('current-playhead');
+        }
+
+        // 2. Add active-card and current-playhead to the currently playing step/bar
+        const currentCard = document.getElementById(`bar-card-${bar}`);
+        if (currentCard) {
+            currentCard.classList.add('active-card');
+
+            // Auto-scroll current card into view inside scrollable master sequencer wrapper
+            if (bar !== lastPlayingBar) {
+                currentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        const currentRCell = document.getElementById(`riddim-cell-${bar}-${stepInBar}`);
+        if (currentRCell) currentRCell.classList.add('current-playhead');
+
+        const currentACell = document.getElementById(`arp-cell-${bar}-${stepInBar}`);
+        if (currentACell) currentACell.classList.add('current-playhead');
+
+        // Update tracking variables
+        lastPlayingBar = bar;
+        lastPlayingStep = stepInBar;
+    }
 
     function handleNextStep() {
         const bpm = parseFloat(document.getElementById('bpm').value);
@@ -1866,12 +2129,20 @@
         playingStep++;
         globalStepIndex++;
 
+        // Get loop boundaries
+        const loopStartSelect = document.getElementById('loopStart');
+        const loopEndSelect = document.getElementById('loopEnd');
+        let loopStartIdx = loopStartSelect ? parseInt(loopStartSelect.value) - 1 : 0;
+        let loopEndIdx = loopEndSelect ? parseInt(loopEndSelect.value) - 1 : TOTAL_BARS - 1;
+
         if (playingStep >= STEPS_PER_BAR) {
             playingStep = 0;
             playingBar++;
-            if (playingBar >= TOTAL_BARS) {
+
+            // Apply Loop Range constraint or play final turnaround output chord and stop
+            if (playingBar > loopEndIdx || playingBar >= TOTAL_BARS) {
                 const onEndBehavior = document.getElementById('onSequencerEnd').value;
-                if (onEndBehavior === 'play_output') {
+                if (onEndBehavior === 'play_output' && loopEndIdx === TOTAL_BARS - 1) {
                     // Play final Output Chord
                     let outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
                     const tuningSystem = document.getElementById('tuningSys').value;
@@ -1902,15 +2173,15 @@
                     document.getElementById('playingChordDisplay').innerText = `Output Chord Played`;
                     return;
                 } else {
-                    playingBar = 0;
-                    globalStepIndex = 0;
+                    playingBar = loopStartIdx;
                 }
             }
+            globalStepIndex = playingBar * STEPS_PER_BAR;
         }
     }
 
     function scheduleSequenceNote(stepIndex, time) {
-        let bar = Math.floor(stepIndex / STEPS_PER_BAR);
+        let bar = Math.floor(stepIndex / STEPS_PER_BAR) % TOTAL_BARS;
         let stepInBar = stepIndex % STEPS_PER_BAR;
         let chordData = progression[bar];
 
@@ -1918,40 +2189,7 @@
 
         // UI Updates synchronized to Web Audio time using requestAnimationFrame
         requestAnimationFrame(() => {
-            // Update live playing bar highlights
-            document.getElementById('playingBarDisplay').innerText = `Bar ${bar + 1} / 64`;
-            document.getElementById('playingChordDisplay').innerText = chordData.name;
-            document.getElementById('tensionTypeDisplay').innerText = chordData.isBridge ? "Tense Bridge" : "Consonant Base";
-            document.getElementById('tensionTypeDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
-
-            // Update 64-bar overview grids to show playing location
-            const overviewGrid = document.getElementById('barOverviewGrid');
-            Array.from(overviewGrid.children).forEach((cell, idx) => {
-                if (idx === bar) {
-                    cell.classList.add('playing');
-                } else {
-                    cell.classList.remove('playing');
-                }
-            });
-
-            // Update 16 step sequencer visual position indicator
-            if (bar === editingBar) {
-                const riddimPads = document.getElementById('riddimGrid').children;
-                const arpPads = document.getElementById('arpGrid').children;
-                for (let s = 0; s < STEPS_PER_BAR; s++) {
-                    if (s === stepInBar) {
-                        riddimPads[s].classList.add('current-playing-step');
-                        arpPads[s].classList.add('current-playing-step');
-                    } else {
-                        riddimPads[s].classList.remove('current-playing-step');
-                        arpPads[s].classList.remove('current-playing-step');
-                    }
-                }
-            }
-
-            // Update text/theory explanation in sidebar
-            document.getElementById('chordNameDisplay').innerText = chordData.name;
-            document.getElementById('chordNameDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+            updatePlayheadUI(bar, stepInBar, chordData);
         });
 
         // Pull dynamic tuning parameters
@@ -1994,96 +2232,154 @@
 
     // --- 6. USER INTERFACE RENDERING & CONTROLLER ---
 
-    // Draw the 64-bar overview grid
-    function renderBarGrid() {
-        const grid = document.getElementById('barOverviewGrid');
-        grid.innerHTML = '';
+    // Draw the 64-Bar Master Stack Sequencer (Dual Channel)
+    function renderMasterSequencer() {
+        const container = document.getElementById('masterSequencerGrid');
+        if (!container) return;
+        container.innerHTML = '';
 
-        for (let b = 0; b < TOTAL_BARS; b++) {
-            const chord = progression[b];
-            const cell = document.createElement('div');
-            cell.className = 'bar-cell';
-            if (chord) {
-                cell.classList.add(chord.isBridge ? 'is-bridge' : 'is-base');
-            }
-            if (b === editingBar) {
-                cell.classList.add('active-edit');
-            }
+        for (let rowIdx = 0; rowIdx < 32; rowIdx++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'sequencer-pair-row';
 
-            // Bar number
-            const numSpan = document.createElement('span');
-            numSpan.className = 'bar-num';
-            numSpan.innerText = b + 1;
-            cell.appendChild(numSpan);
+            const barA = rowIdx * 2;
+            const barB = rowIdx * 2 + 1;
 
-            // Active programmed notes indicator dots
-            const indicatorDiv = document.createElement('div');
-            indicatorDiv.className = 'bar-indicators';
+            [barA, barB].forEach(b => {
+                if (b >= TOTAL_BARS) return;
 
-            // Check if bar has active steps
-            let hasRiddim = sequencerData.riddim[b].some(step => step);
-            let hasArp = sequencerData.arp[b].some(step => step);
+                const chord = progression[b];
+                const card = document.createElement('div');
+                card.className = `sequencer-bar-card ${chord && chord.isBridge ? 'bridge-bar' : 'base-bar'}`;
+                card.id = `bar-card-${b}`;
 
-            const rDot = document.createElement('div');
-            rDot.className = 'indicator-dot';
-            if (hasRiddim) rDot.classList.add('riddim-active');
+                if (b === editingBar) {
+                    card.classList.add('selected-card');
+                }
+                if (isPlaying && b === playingBar) {
+                    card.classList.add('active-card');
+                }
 
-            const aDot = document.createElement('div');
-            aDot.className = 'indicator-dot';
-            if (hasArp) aDot.classList.add('arp-active');
+                // Card Click Focus Handler
+                card.addEventListener('mousedown', (e) => {
+                    // Only trigger if not clicking a step cell directly to prevent focus fighting
+                    if (!e.target.classList.contains('compact-step-cell')) {
+                        editingBar = b;
+                        document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                        renderMasterSequencer();
+                        updateTheoryPanel(b);
+                    }
+                });
 
-            indicatorDiv.appendChild(rDot);
-            indicatorDiv.appendChild(aDot);
-            cell.appendChild(indicatorDiv);
+                // 1. Header Info
+                const header = document.createElement('div');
+                header.className = 'bar-header-info';
 
-            // Edit focus change click handler
-            cell.addEventListener('click', () => {
-                editingBar = b;
-                document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${b + 1}`;
-                document.getElementById('sequencerTitle').innerText = `Bar ${b + 1} Step Sequencer`;
-                renderBarGrid();
-                renderStepSequencer();
-                updateTheoryPanel(b);
+                const title = document.createElement('span');
+                title.className = 'bar-title';
+                title.innerText = `Bar ${b + 1}`;
+
+                const chordLabel = document.createElement('span');
+                chordLabel.className = 'bar-chord-name';
+                chordLabel.style.color = chord && chord.isBridge ? 'var(--accent-bridge)' : 'var(--accent-base)';
+                chordLabel.innerText = chord ? chord.name : 'Initializing...';
+
+                header.appendChild(title);
+                header.appendChild(chordLabel);
+                card.appendChild(header);
+
+                // 2. Riddim compact grid row
+                const riddimRow = document.createElement('div');
+                riddimRow.className = 'compact-grid-row';
+
+                const rIcon = document.createElement('span');
+                rIcon.className = 'grid-icon';
+                rIcon.style.color = 'var(--accent-bridge)';
+                rIcon.innerText = '🥁';
+                rIcon.title = 'Bassline trigger grid';
+
+                const rStepsContainer = document.createElement('div');
+                rStepsContainer.className = 'compact-steps';
+
+                for (let s = 0; s < STEPS_PER_BAR; s++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'compact-step-cell';
+                    cell.id = `riddim-cell-${b}-${s}`;
+                    if (sequencerData.riddim[b][s]) {
+                        cell.classList.add('riddim-active');
+                    }
+                    if (isPlaying && b === playingBar && s === playingStep) {
+                        cell.classList.add('current-playhead');
+                    }
+
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        sequencerData.riddim[b][s] = !sequencerData.riddim[b][s];
+                        cell.classList.toggle('riddim-active');
+                        // Auto-select bar as editing bar
+                        if (editingBar !== b) {
+                            editingBar = b;
+                            document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                            renderMasterSequencer();
+                            updateTheoryPanel(b);
+                        }
+                    });
+
+                    rStepsContainer.appendChild(cell);
+                }
+
+                riddimRow.appendChild(rIcon);
+                riddimRow.appendChild(rStepsContainer);
+                card.appendChild(riddimRow);
+
+                // 3. Arpeggiator compact grid row
+                const arpRow = document.createElement('div');
+                arpRow.className = 'compact-grid-row';
+
+                const aIcon = document.createElement('span');
+                aIcon.className = 'grid-icon';
+                aIcon.style.color = 'var(--accent-base)';
+                aIcon.innerText = '🌀';
+                aIcon.title = 'Arpeggiator trigger grid';
+
+                const aStepsContainer = document.createElement('div');
+                aStepsContainer.className = 'compact-steps';
+
+                for (let s = 0; s < STEPS_PER_BAR; s++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'compact-step-cell';
+                    cell.id = `arp-cell-${b}-${s}`;
+                    if (sequencerData.arp[b][s]) {
+                        cell.classList.add('arp-active');
+                    }
+                    if (isPlaying && b === playingBar && s === playingStep) {
+                        cell.classList.add('current-playhead');
+                    }
+
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        sequencerData.arp[b][s] = !sequencerData.arp[b][s];
+                        cell.classList.toggle('arp-active');
+                        // Auto-select bar as editing bar
+                        if (editingBar !== b) {
+                            editingBar = b;
+                            document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                            renderMasterSequencer();
+                            updateTheoryPanel(b);
+                        }
+                    });
+
+                    aStepsContainer.appendChild(cell);
+                }
+
+                arpRow.appendChild(aIcon);
+                arpRow.appendChild(aStepsContainer);
+                card.appendChild(arpRow);
+
+                rowDiv.appendChild(card);
             });
 
-            grid.appendChild(cell);
-        }
-    }
-
-    // Render 16 Steps details
-    function renderStepSequencer() {
-        const riddimGrid = document.getElementById('riddimGrid');
-        const arpGrid = document.getElementById('arpGrid');
-
-        riddimGrid.innerHTML = '';
-        arpGrid.innerHTML = '';
-
-        for (let s = 0; s < STEPS_PER_BAR; s++) {
-            // Riddim step
-            const rCell = document.createElement('div');
-            rCell.className = 'step-cell';
-            if (sequencerData.riddim[editingBar][s]) {
-                rCell.classList.add('riddim-active');
-            }
-            rCell.addEventListener('click', () => {
-                sequencerData.riddim[editingBar][s] = !sequencerData.riddim[editingBar][s];
-                rCell.classList.toggle('riddim-active');
-                renderBarGrid(); // Update active dots in 64-bar view
-            });
-            riddimGrid.appendChild(rCell);
-
-            // Arp step
-            const aCell = document.createElement('div');
-            aCell.className = 'step-cell';
-            if (sequencerData.arp[editingBar][s]) {
-                aCell.classList.add('arp-active');
-            }
-            aCell.addEventListener('click', () => {
-                sequencerData.arp[editingBar][s] = !sequencerData.arp[editingBar][s];
-                aCell.classList.toggle('arp-active');
-                renderBarGrid(); // Update active dots in 64-bar view
-            });
-            arpGrid.appendChild(aCell);
+            container.appendChild(rowDiv);
         }
     }
 
@@ -2124,14 +2420,6 @@
         // Adjust canvas dimensions to bounding container dynamically
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
-
-        // Keep canvas responsive on window resize
-        window.addEventListener('resize', () => {
-            if (canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-            }
-        });
 
         function renderFrame() {
             if (!isPlaying) return;
@@ -2267,53 +2555,109 @@
         document.getElementById('arpDecayVal').innerText = e.target.value + " ms";
     });
 
+    // --- Synthesizer Voice Editors Listeners ---
+    document.getElementById('bassVol').addEventListener('input', (e) => {
+        document.getElementById('bassVolVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('bassAttack').addEventListener('input', (e) => {
+        document.getElementById('bassAttackVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('bassDecay').addEventListener('input', (e) => {
+        document.getElementById('bassDecayVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('bassSustain').addEventListener('input', (e) => {
+        document.getElementById('bassSustainVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('bassRelease').addEventListener('input', (e) => {
+        document.getElementById('bassReleaseVal').innerText = e.target.value + " ms";
+    });
+
+    document.getElementById('arpVol').addEventListener('input', (e) => {
+        document.getElementById('arpVolVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('arpAttack').addEventListener('input', (e) => {
+        document.getElementById('arpAttackVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('arpDecay').addEventListener('input', (e) => {
+        document.getElementById('arpDecayVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('arpSustain').addEventListener('input', (e) => {
+        document.getElementById('arpSustainVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('arpRelease').addEventListener('input', (e) => {
+        document.getElementById('arpReleaseVal').innerText = e.target.value + " ms";
+    });
+
     // Generate progression
     document.getElementById('generateProgBtn').addEventListener('click', generateJourney);
 
-    // Step sequencer navigations and helpers
-    document.getElementById('prevBarBtn').addEventListener('click', () => {
-        if (editingBar > 0) {
-            editingBar--;
-            document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${editingBar + 1}`;
-            document.getElementById('sequencerTitle').innerText = `Bar ${editingBar + 1} Step Sequencer`;
-            renderBarGrid();
-            renderStepSequencer();
-            updateTheoryPanel(editingBar);
-        }
-    });
+    // Loop Range Selectors Dynamic Initialization
+    function initLoopRangeSelectors() {
+        const loopStartSelect = document.getElementById('loopStart');
+        const loopEndSelect = document.getElementById('loopEnd');
+        if (!loopStartSelect || !loopEndSelect) return;
 
-    document.getElementById('nextBarBtn').addEventListener('click', () => {
-        if (editingBar < TOTAL_BARS - 1) {
-            editingBar++;
-            document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${editingBar + 1}`;
-            document.getElementById('sequencerTitle').innerText = `Bar ${editingBar + 1} Step Sequencer`;
-            renderBarGrid();
-            renderStepSequencer();
-            updateTheoryPanel(editingBar);
-        }
-    });
+        loopStartSelect.innerHTML = '';
+        loopEndSelect.innerHTML = '';
 
+        for (let i = 1; i <= TOTAL_BARS; i++) {
+            const optStart = document.createElement('option');
+            optStart.value = i;
+            optStart.innerText = `Bar ${i}`;
+            loopStartSelect.appendChild(optStart);
+
+            const optEnd = document.createElement('option');
+            optEnd.value = i;
+            optEnd.innerText = `Bar ${i}`;
+            loopEndSelect.appendChild(optEnd);
+        }
+
+        // Default loop covers full 64 bars
+        loopStartSelect.value = 1;
+        loopEndSelect.value = 64;
+
+        // Auto-correct out-of-bounds selections
+        loopStartSelect.addEventListener('change', () => {
+            let startVal = parseInt(loopStartSelect.value);
+            let endVal = parseInt(loopEndSelect.value);
+            if (startVal > endVal) {
+                loopEndSelect.value = startVal;
+            }
+        });
+
+        loopEndSelect.addEventListener('change', () => {
+            let startVal = parseInt(loopStartSelect.value);
+            let endVal = parseInt(loopEndSelect.value);
+            if (endVal < startVal) {
+                loopStartSelect.value = endVal;
+            }
+        });
+
+        document.getElementById('resetLoopBtn').addEventListener('click', () => {
+            loopStartSelect.value = 1;
+            loopEndSelect.value = 64;
+        });
+    }
+
+    // Step sequencer button controls for the currently focused/editing bar
     document.getElementById('clearBarBtn').addEventListener('click', () => {
         sequencerData.riddim[editingBar].fill(false);
         sequencerData.arp[editingBar].fill(false);
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('randRiddimBtn').addEventListener('click', () => {
         for (let s = 0; s < STEPS_PER_BAR; s++) {
             sequencerData.riddim[editingBar][s] = Math.random() > 0.65;
         }
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('randArpBtn').addEventListener('click', () => {
         for (let s = 0; s < STEPS_PER_BAR; s++) {
             sequencerData.arp[editingBar][s] = Math.random() > 0.5;
         }
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('copyToAllBtn').addEventListener('click', () => {
@@ -2324,7 +2668,7 @@
                     sequencerData.arp[b] = [...sequencerData.arp[editingBar]];
                 }
             }
-            renderBarGrid();
+            renderMasterSequencer();
             alert("Pattern copied to all 64 bars successfully!");
         }
     });
@@ -2524,7 +2868,7 @@
             }
         }
 
-        renderBarGrid();
+        renderMasterSequencer();
         updateTheoryPanel(editingBar);
         alert(`Successfully loaded DNA chromosome sequence from Incubator #${idx+1} into the active play engine!`);
     };
@@ -2743,9 +3087,19 @@
     };
 
     // --- 10. BOOTSTRAP INITIALIZATION ---
+    initLoopRangeSelectors();
     generateJourney();
     initializeBreedingLabCandidates(); // Initialize breeding lab candidates
-    renderStepSequencer();
+    renderMasterSequencer();
+
+    // Global resize listener for canvas visualizer - runs exactly once
+    window.addEventListener('resize', () => {
+        const canvas = document.getElementById('visualizerCanvas');
+        if (canvas && canvas.parentElement) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+    });
 </script>
 </body>
 </html>
