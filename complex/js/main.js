@@ -8,7 +8,7 @@ import { jazzProgression } from "./harmony/jazzProgression.js";
 import { PentatonicBridge } from "./harmony/pentatonicBridge.js";
 import { tuningSystem } from "./microtonal/temperament.js";
 import { WalkingBass } from "./bass/walkingBass.js";
-import { ArpGenerator } from "./arp/arpGenerator.js";
+import { arpGenerator } from "./arp/arpGenerator.js";
 import { Roughness } from "./psycho/roughness.js";
 import { Harmonicity } from "./psycho/harmonicity.js";
 import { Expectation } from "./psycho/expectation.js";
@@ -21,7 +21,7 @@ let activeProgression = [];
 let patternInstance;
 let expectationInstance;
 
-let currentSelectedBar = 0; // Bar editing index (0 to 63)
+let currentSelectedBar = 0; // Highlights/Selection editing index
 let lastActiveChord = null;
 
 // Initialization routine
@@ -35,12 +35,12 @@ async function initApp() {
     effectsEngine.setup(ctx, preFxNode, audioEngine.analyser);
     audioEngine.analyser.connect(ctx.destination);
 
-    // 2. Initialize Core instances
-    patternInstance = new Pattern();
+    // 2. Initialize Core instances (we map 4 bars of pattern data)
+    patternInstance = new Pattern(4, 16);
     expectationInstance = new Expectation();
 
     // Default Patterns (Drums four-on-the-floor, nice default arp syncopation)
-    for (let b = 0; b < 64; b++) {
+    for (let b = 0; b < 4; b++) {
         // Kick on 1, 5, 9, 13
         for (let i = 0; i < 16; i += 4) patternInstance.data[b].kick[i] = true;
         // Snare on 5, 13
@@ -102,21 +102,25 @@ function generateProgression() {
 }
 
 function scheduleStep(stepIndex, time) {
-    const barIndex = Math.floor(clock.currentStep / 16); // High-res clock cycles 64 steps total
-    const barStep = stepIndex % 16;
+    // clock.currentStep cycles from 0 to 63 steps (representing 4 bars)
+    const currentGlobalStep = clock.currentStep;
+    const activeBarIndex = Math.floor(currentGlobalStep / 16); // 0 to 3
+    const activeStepInBar = currentGlobalStep % 16;             // 0 to 15
 
-    // Grab currently active progression chord
-    const activeChord = activeProgression[barIndex] || activeProgression[0];
+    // Map current bar index to progression timelines (looping chord evolution over 64 bars)
+    // We can track a progressive timeline index
+    const progressionBarIndex = Math.floor(audioEngine.currentTime * (clock.bpm / 60) / 4) % 64;
+    const activeChord = activeProgression[progressionBarIndex] || activeProgression[0];
 
     // Real-time synchronization back to UI displays
     requestAnimationFrame(() => {
-        document.getElementById("dispBar").innerText = String(barIndex + 1).padStart(2, "0");
-        document.getElementById("dispBeat").innerText = String(Math.floor(barStep / 4) + 1).padStart(2, "0");
-        document.getElementById("dispStep").innerText = String(barStep + 1).padStart(2, "0");
+        document.getElementById("dispBar").innerText = String(progressionBarIndex + 1).padStart(2, "0");
+        document.getElementById("dispBeat").innerText = String(Math.floor(activeStepInBar / 4) + 1).padStart(2, "0");
+        document.getElementById("dispStep").innerText = String(activeStepInBar + 1).padStart(2, "0");
 
         // Highlight playing timeline slot
         document.querySelectorAll(".timeline-chord").forEach(el => el.classList.remove("current-playing"));
-        const slotEl = document.getElementById(`timeline-slot-${barIndex}`);
+        const slotEl = document.getElementById(`timeline-slot-${progressionBarIndex}`);
         if (slotEl) {
             slotEl.classList.add("current-playing");
             slotEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -124,33 +128,31 @@ function scheduleStep(stepIndex, time) {
 
         document.getElementById("lblActiveChord").innerText = `Active: ${activeChord.name}`;
 
-        // Highlight playing step cell if currently looking at this edit bar
-        if (barIndex === currentSelectedBar) {
-            document.querySelectorAll(".step-cell").forEach(el => el.classList.remove("playing"));
+        // Highlight active playhead step cell in all 4 stacked grids
+        document.querySelectorAll(".step-cell").forEach(el => el.classList.remove("playing"));
 
-            const drumCell = document.getElementById(`drum-step-${barStep}`);
-            const bassCell = document.getElementById(`bass-step-${barStep}`);
-            const arpCell = document.getElementById(`arp-step-${barStep}`);
+        const drumCell = document.getElementById(`drum-step-${activeBarIndex}-${activeStepInBar}`);
+        const bassCell = document.getElementById(`bass-step-${activeBarIndex}-${activeStepInBar}`);
+        const arpCell = document.getElementById(`arp-step-${activeBarIndex}-${activeStepInBar}`);
 
-            if (drumCell) drumCell.classList.add("playing");
-            if (bassCell) bassCell.classList.add("playing");
-            if (arpCell) arpCell.classList.add("playing");
-        }
+        if (drumCell) drumCell.classList.add("playing");
+        if (bassCell) bassCell.classList.add("playing");
+        if (arpCell) arpCell.classList.add("playing");
     });
 
     // 1. Process real-time drum synthesis triggers
-    const barPattern = patternInstance.data[barIndex];
-    if (barPattern.kick[barStep]) synth.triggerDrum("kick", time);
-    if (barPattern.snare[barStep]) synth.triggerDrum("snare", time);
-    if (barPattern.hihat[barStep]) synth.triggerDrum("hihat", time);
+    const barPattern = patternInstance.data[activeBarIndex];
+    if (barPattern.kick[activeStepInBar]) synth.triggerDrum("kick", time);
+    if (barPattern.snare[activeStepInBar]) synth.triggerDrum("snare", time);
+    if (barPattern.hihat[activeStepInBar]) synth.triggerDrum("hihat", time);
 
     // 2. Process walking bass trigger
-    if (barPattern.bass[barStep]) {
+    if (barPattern.bass[activeStepInBar]) {
         const style = document.getElementById("selectBassStyle").value;
         const bias = parseInt(document.getElementById("sliderBassBias").value);
-        const nextChord = activeProgression[(barIndex + 1) % 64];
+        const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
 
-        const rawMidi = WalkingBass.generateBassNote(activeChord, nextChord, barStep, style, bias);
+        const rawMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
         const tuningFreq = tuningSystem.getFrequencyInfo(rawMidi).frequency;
 
         synth.triggerPluckedBass(tuningFreq, time, 0.35);
@@ -163,12 +165,12 @@ function scheduleStep(stepIndex, time) {
     }
 
     // 3. Process arpeggiation triggers
-    if (barPattern.arp[barStep]) {
+    if (barPattern.arp[activeStepInBar]) {
         const order = document.getElementById("selectArpOrder").value;
         const octaves = parseInt(document.getElementById("sliderArpOctaves").value);
         const ghost = parseInt(document.getElementById("sliderGhostChance").value);
 
-        const arpRes = arpGenerator.getNextNote(activeChord, barStep, order, octaves, ghost);
+        const arpRes = arpGenerator.getNextNote(activeChord, activeStepInBar, order, octaves, ghost);
         const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
 
         const soundStyle = document.getElementById("selectArpSound").value;
@@ -183,7 +185,7 @@ function scheduleStep(stepIndex, time) {
     }
 
     // 4. Perform psychoacoustic real-time calculation at each chord boundaries (downbeats)
-    if (barStep === 0 && activeChord !== lastActiveChord) {
+    if (activeStepInBar === 0 && activeChord !== lastActiveChord) {
         lastActiveChord = activeChord;
         calculatePsychoacousticMeasures(activeChord);
     }
@@ -227,57 +229,64 @@ function renderTimeline() {
             <div class="chord-info">Bar ${idx + 1}</div>
         `;
         cell.addEventListener("click", () => {
-            currentSelectedBar = idx;
-            document.getElementById("lblSelectedBar").innerText = `BAR ${String(currentSelectedBar + 1).padStart(2, "0")}`;
-            renderGrids();
+            currentSelectedBar = idx % 4; // Map timeline click to highlighted bar stack editing
         });
         container.appendChild(cell);
     });
 }
 
 function renderGrids() {
-    const barPattern = patternInstance.data[currentSelectedBar];
+    // Simultaneously render all 4 bar editor stacks
+    for (let b = 0; b < 4; b++) {
+        const barPattern = patternInstance.data[b];
 
-    // 1. Render drums rows (Kick mixed with Hihat on a single row view for UX simplicity)
-    const drumContainer = document.getElementById("gridDrum");
-    drumContainer.innerHTML = "";
-    for (let i = 0; i < 16; i++) {
-        const cell = document.createElement("div");
-        cell.className = `step-cell ${barPattern.kick[i] ? "active-drum" : ""}`;
-        cell.id = `drum-step-${i}`;
-        cell.addEventListener("click", () => {
-            barPattern.kick[i] = !barPattern.kick[i];
-            cell.classList.toggle("active-drum");
-        });
-        drumContainer.appendChild(cell);
-    }
+        // 1. Render drums rows for Bar index b
+        const drumContainer = document.getElementById(`gridDrum-${b}`);
+        if (drumContainer) {
+            drumContainer.innerHTML = "";
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement("div");
+                cell.className = `step-cell ${barPattern.kick[i] ? "active-drum" : ""}`;
+                cell.id = `drum-step-${b}-${i}`;
+                cell.addEventListener("click", () => {
+                    barPattern.kick[i] = !barPattern.kick[i];
+                    cell.classList.toggle("active-drum");
+                });
+                drumContainer.appendChild(cell);
+            }
+        }
 
-    // 2. Render bass row grid
-    const bassContainer = document.getElementById("gridBass");
-    bassContainer.innerHTML = "";
-    for (let i = 0; i < 16; i++) {
-        const cell = document.createElement("div");
-        cell.className = `step-cell ${barPattern.bass[i] ? "active-bass" : ""}`;
-        cell.id = `bass-step-${i}`;
-        cell.addEventListener("click", () => {
-            barPattern.bass[i] = !barPattern.bass[i];
-            cell.classList.toggle("active-bass");
-        });
-        bassContainer.appendChild(cell);
-    }
+        // 2. Render bass rows for Bar index b
+        const bassContainer = document.getElementById(`gridBass-${b}`);
+        if (bassContainer) {
+            bassContainer.innerHTML = "";
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement("div");
+                cell.className = `step-cell ${barPattern.bass[i] ? "active-bass" : ""}`;
+                cell.id = `bass-step-${b}-${i}`;
+                cell.addEventListener("click", () => {
+                    barPattern.bass[i] = !barPattern.bass[i];
+                    cell.classList.toggle("active-bass");
+                });
+                bassContainer.appendChild(cell);
+            }
+        }
 
-    // 3. Render arpeggiator row grid
-    const arpContainer = document.getElementById("gridArp");
-    arpContainer.innerHTML = "";
-    for (let i = 0; i < 16; i++) {
-        const cell = document.createElement("div");
-        cell.className = `step-cell ${barPattern.arp[i] ? "active-arp" : ""}`;
-        cell.id = `arp-step-${i}`;
-        cell.addEventListener("click", () => {
-            barPattern.arp[i] = !barPattern.arp[i];
-            cell.classList.toggle("active-arp");
-        });
-        arpContainer.appendChild(cell);
+        // 3. Render arp rows for Bar index b
+        const arpContainer = document.getElementById(`gridArp-${b}`);
+        if (arpContainer) {
+            arpContainer.innerHTML = "";
+            for (let i = 0; i < 16; i++) {
+                const cell = document.createElement("div");
+                cell.className = `step-cell ${barPattern.arp[i] ? "active-arp" : ""}`;
+                cell.id = `arp-step-${b}-${i}`;
+                cell.addEventListener("click", () => {
+                    barPattern.arp[i] = !barPattern.arp[i];
+                    cell.classList.toggle("active-arp");
+                });
+                arpContainer.appendChild(cell);
+            }
+        }
     }
 }
 
@@ -385,47 +394,36 @@ function bindUIEvents() {
         }
     });
 
-    // 3. Navigation Controls
-    document.getElementById("btnPrevBar").addEventListener("click", () => {
-        if (currentSelectedBar > 0) {
-            currentSelectedBar--;
-            document.getElementById("lblSelectedBar").innerText = `BAR ${String(currentSelectedBar + 1).padStart(2, "0")}`;
-            renderGrids();
-        }
-    });
-
-    document.getElementById("btnNextBar").addEventListener("click", () => {
-        if (currentSelectedBar < 63) {
-            currentSelectedBar++;
-            document.getElementById("lblSelectedBar").innerText = `BAR ${String(currentSelectedBar + 1).padStart(2, "0")}`;
-            renderGrids();
-        }
-    });
-
-    document.getElementById("btnCopyBar").addEventListener("click", () => {
-        patternInstance.copyBarToAll(currentSelectedBar);
-        alert("Copied current bar settings to all 64 steps!");
+    // 3. Global Actions
+    document.getElementById("btnCopyBar1").addEventListener("click", () => {
+        patternInstance.copyBarToAll(0); // Copy Bar 1 pattern to Bars 2, 3, 4
+        renderGrids();
+        alert("Copied Bar 1 pattern to all bars.");
     });
 
     document.getElementById("btnEuclideanGen").addEventListener("click", () => {
         const steps = 16;
-        // Generate nice rhythmic density
-        const bassEuclidean = Pattern.generateEuclidean(steps, 6, 0);
-        const arpEuclidean = Pattern.generateEuclidean(steps, 10, 2);
+        for (let b = 0; b < 4; b++) {
+            // Populate interesting Euclidean grids across all 4 bars
+            const bassEuclidean = Pattern.generateEuclidean(steps, 5 + b, b);
+            const arpEuclidean = Pattern.generateEuclidean(steps, 9 + b, (b + 1) % 4);
 
-        patternInstance.data[currentSelectedBar].bass = bassEuclidean;
-        patternInstance.data[currentSelectedBar].arp = arpEuclidean;
+            patternInstance.data[b].bass = bassEuclidean;
+            patternInstance.data[b].arp = arpEuclidean;
+        }
         renderGrids();
     });
 
     document.getElementById("btnRandomizePattern").addEventListener("click", () => {
-        const barPattern = patternInstance.data[currentSelectedBar];
-        for (let i = 0; i < 16; i++) {
-            barPattern.kick[i] = Math.random() > 0.75;
-            barPattern.snare[i] = Math.random() > 0.85;
-            barPattern.hihat[i] = Math.random() > 0.6;
-            barPattern.bass[i] = Math.random() > 0.7;
-            barPattern.arp[i] = Math.random() > 0.65;
+        for (let b = 0; b < 4; b++) {
+            const barPattern = patternInstance.data[b];
+            for (let i = 0; i < 16; i++) {
+                barPattern.kick[i] = Math.random() > 0.8;
+                barPattern.snare[i] = Math.random() > 0.85;
+                barPattern.hihat[i] = Math.random() > 0.65;
+                barPattern.bass[i] = Math.random() > 0.75;
+                barPattern.arp[i] = Math.random() > 0.7;
+            }
         }
         renderGrids();
     });

@@ -160,48 +160,97 @@
                 </div>
             </div>
 
-            <!-- Piano Roll / Step Editor Panels -->
+            <!-- Redesigned 4-Bar Stacked Sequencer Container (No Horizontal Scrolling) -->
             <div class="sequencer-container">
-                <!-- Bar Editor controls -->
-                <div class="panel" style="margin-bottom: 0; padding: 10px 15px;">
+                <!-- Global Sequencer action header -->
+                <div class="panel" style="margin-bottom: 0; padding: 8px 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <button id="btnPrevBar">◄ Prev Bar</button>
-                            <span style="font-family: monospace; font-weight: bold; font-size: 1.1rem; min-width: 80px; text-align: center;" id="lblSelectedBar">BAR 01</span>
-                            <button id="btnNextBar">Next Bar ►</button>
-                        </div>
+                        <span style="font-family: monospace; font-weight: bold; font-size: 0.9rem; color: var(--accent-cyan);">ACTIVE 4-BAR SEQUENCER PATTERN</span>
                         <div style="display: flex; gap: 8px;">
-                            <button id="btnCopyBar" style="font-size: 0.75rem; padding: 6px 12px;">Copy to All Bars</button>
-                            <button id="btnEuclideanGen" style="font-size: 0.75rem; padding: 6px 12px; background: rgba(0, 240, 255, 0.1); border-color: var(--accent-cyan);">Euclidean Fill</button>
+                            <button id="btnCopyBar1" style="font-size: 0.7rem; padding: 4px 10px;">Copy Bar 1 to All</button>
+                            <button id="btnEuclideanGen" style="font-size: 0.7rem; padding: 4px 10px; background: rgba(0, 240, 255, 0.1); border-color: var(--accent-cyan);">Euclidean Fill</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Drum grid (Kick, Snare, Hihat) -->
-                <div class="grid-row">
-                    <div class="grid-row-header">
-                        <span>DRUMS (KICK / SNARE / HIHAT)</span>
-                        <span>64-step Bar Grid</span>
+                <!-- BAR 1 STACK -->
+                <div class="panel" style="margin-bottom: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-color: rgba(0, 240, 255, 0.3);">
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-cyan); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 3px;">BAR 1 // STEPS 1-16</div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-yellow);">DRUMS</span>
+                        <div class="sequencer-grid" id="gridDrum-0"></div>
                     </div>
-                    <div class="sequencer-grid" id="gridDrum"></div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-pink);">BASS</span>
+                        <div class="sequencer-grid" id="gridBass-0"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-cyan);">ARP</span>
+                        <div class="sequencer-grid" id="gridArp-0"></div>
+                    </div>
                 </div>
 
-                <!-- Bass trigger grid -->
-                <div class="grid-row">
-                    <div class="grid-row-header">
-                        <span>WALKING BASS TRIGGER</span>
-                        <span>64-step Bar Grid</span>
+                <!-- BAR 2 STACK -->
+                <div class="panel" style="margin-bottom: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-color: rgba(255, 0, 85, 0.2);">
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-pink); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 3px;">BAR 2 // STEPS 17-32</div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-yellow);">DRUMS</span>
+                        <div class="sequencer-grid" id="gridDrum-1"></div>
                     </div>
-                    <div class="sequencer-grid" id="gridBass"></div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-pink);">BASS</span>
+                        <div class="sequencer-grid" id="gridBass-1"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-cyan);">ARP</span>
+                        <div class="sequencer-grid" id="gridArp-1"></div>
+                    </div>
                 </div>
 
-                <!-- Arpeggiator trigger grid -->
-                <div class="grid-row">
-                    <div class="grid-row-header">
-                        <span>FUNKY ARPEGGIATOR TRIGGER</span>
-                        <span>64-step Bar Grid</span>
+                <!-- BAR 3 STACK -->
+                <div class="panel" style="margin-bottom: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-color: rgba(157, 78, 221, 0.2);">
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-purple); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 3px;">BAR 3 // STEPS 33-48</div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-yellow);">DRUMS</span>
+                        <div class="sequencer-grid" id="gridDrum-2"></div>
                     </div>
-                    <div class="sequencer-grid" id="gridArp"></div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-pink);">BASS</span>
+                        <div class="sequencer-grid" id="gridBass-2"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-cyan);">ARP</span>
+                        <div class="sequencer-grid" id="gridArp-2"></div>
+                    </div>
+                </div>
+
+                <!-- BAR 4 STACK -->
+                <div class="panel" style="margin-bottom: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-color: rgba(255, 183, 0, 0.2);">
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-yellow); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 3px;">BAR 4 // STEPS 49-64</div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-yellow);">DRUMS</span>
+                        <div class="sequencer-grid" id="gridDrum-3"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-pink);">BASS</span>
+                        <div class="sequencer-grid" id="gridBass-3"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--accent-cyan);">ARP</span>
+                        <div class="sequencer-grid" id="gridArp-3"></div>
+                    </div>
                 </div>
             </div>
         </div>
