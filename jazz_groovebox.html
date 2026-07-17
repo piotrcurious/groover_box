@@ -702,6 +702,98 @@
 
             <button id="generateProgBtn" class="btn btn-primary">Generate 64-Bar Journey</button>
 
+            <!-- Composition Integration -->
+            <div class="panel-header" style="margin-top: 10px;">
+                <span class="panel-title">🔗 Composition Integration</span>
+            </div>
+
+            <div class="control-group">
+                <label>Input Chord (Start Anchor)</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="inputChordRoot" style="flex: 1;">
+                        <option value="48" selected>C</option>
+                        <option value="49">C# / Db</option>
+                        <option value="50">D</option>
+                        <option value="51">D# / Eb</option>
+                        <option value="52">E</option>
+                        <option value="53">F</option>
+                        <option value="54">F# / Gb</option>
+                        <option value="55">G</option>
+                        <option value="56">G# / Ab</option>
+                        <option value="57">A</option>
+                        <option value="58">A# / Bb</option>
+                        <option value="59">B</option>
+                    </select>
+                    <select id="inputChordType" style="flex: 1.5;">
+                        <option value="maj7" selected>Maj7 (Consonant)</option>
+                        <option value="m7">m7 (Soft Minor)</option>
+                        <option value="7">7 (Dominant)</option>
+                        <option value="m7b5">Half-Diminished</option>
+                        <option value="dim7">Diminished 7th</option>
+                    </select>
+                </div>
+                <input type="text" id="inputChordCSV" placeholder="Or enter MIDI CSV (e.g. 48,52,55,59)" style="background-color: #0b0d13; border: 1px solid var(--panel-border); border-radius: 6px; color: var(--text-main); padding: 8px 12px; font-size: 0.85rem; margin-top: 5px;">
+            </div>
+
+            <div class="control-group">
+                <label>Output Chord (Destination)</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="outputChordRoot" style="flex: 1;">
+                        <option value="53" selected>F</option>
+                        <option value="48">C</option>
+                        <option value="49">C# / Db</option>
+                        <option value="50">D</option>
+                        <option value="51">D# / Eb</option>
+                        <option value="52">E</option>
+                        <option value="54">F# / Gb</option>
+                        <option value="55">G</option>
+                        <option value="56">G# / Ab</option>
+                        <option value="57">A</option>
+                        <option value="58">A# / Bb</option>
+                        <option value="59">B</option>
+                    </select>
+                    <select id="outputChordType" style="flex: 1.5;">
+                        <option value="maj7" selected>Maj7 (Consonant)</option>
+                        <option value="m7">m7 (Soft Minor)</option>
+                        <option value="7">7 (Dominant)</option>
+                        <option value="m7b5">Half-Diminished</option>
+                        <option value="dim7">Diminished 7th</option>
+                    </select>
+                </div>
+                <input type="text" id="outputChordCSV" placeholder="Or enter MIDI CSV (e.g. 53,57,60,64)" style="background-color: #0b0d13; border: 1px solid var(--panel-border); border-radius: 6px; color: var(--text-main); padding: 8px 12px; font-size: 0.85rem; margin-top: 5px;">
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="voiceLeadInput" style="width: auto; margin: 0;" checked>
+                    <span>Smooth Voice-Lead from Input</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="prepareOutput" style="width: auto; margin: 0;" checked>
+                    <span>Prepare/Resolve for Output</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>Resolution Mode</label>
+                <select id="resolutionMode">
+                    <option value="dominant" selected>V7 Secondary Dominant</option>
+                    <option value="tritone">SubV7 Tritone Substitute</option>
+                    <option value="ii_V">ii - V Preparation (2 Bars)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>On Sequencer End</label>
+                <select id="onSequencerEnd">
+                    <option value="loop" selected>Loop back to Bar 1</option>
+                    <option value="play_output">Play Output Chord & Stop</option>
+                </select>
+            </div>
+
             <!-- Tuning and Intonation -->
             <div class="panel-header" style="margin-top: 10px;">
                 <span class="panel-title">🎵 Tuning & Microtones</span>
@@ -1063,6 +1155,56 @@
         return intervals.map(i => baseMidi + i);
     }
 
+    // Parse custom or selected chord
+    function parseCustomChord(rootKeyId, chordTypeId, csvId) {
+        const csvVal = document.getElementById(csvId).value.trim();
+        if (csvVal) {
+            let parsed = csvVal.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            if (parsed.length > 0) {
+                return parsed.sort((a,b)=>a-b);
+            }
+        }
+
+        const root = parseInt(document.getElementById(rootKeyId).value);
+        const type = document.getElementById(chordTypeId).value;
+        let intervals = [0, 4, 7, 11]; // default maj7
+        if (type === 'm7') {
+            intervals = [0, 3, 7, 10];
+        } else if (type === '7') {
+            intervals = [0, 4, 7, 10];
+        } else if (type === 'm7b5') {
+            intervals = [0, 3, 6, 10];
+        } else if (type === 'dim7') {
+            intervals = [0, 3, 6, 9];
+        }
+        return intervals.map(i => root + i).sort((a,b)=>a-b);
+    }
+
+    // Smart Jazz Voice Leading function
+    function voiceLeadChord(targetChordNotes, referenceChordNotes) {
+        if (!referenceChordNotes || referenceChordNotes.length === 0) return [...targetChordNotes].sort((a,b)=>a-b);
+        let voiced = [...targetChordNotes].sort((a,b)=>a-b);
+        let ref = [...referenceChordNotes].sort((a,b)=>a-b);
+
+        for (let i = 0; i < voiced.length; i++) {
+            let target = voiced[i];
+            let anchor = ref[i % ref.length];
+            let pClass = target % 12;
+            let bestNote = target;
+            let minDistance = 9999;
+            for (let oct = -36; oct <= 36; oct += 12) {
+                let candidate = (Math.floor(anchor / 12) * 12) + pClass + oct;
+                let dist = Math.abs(candidate - anchor);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestNote = candidate;
+                }
+            }
+            voiced[i] = bestNote;
+        }
+        return voiced.sort((a,b)=>a-b);
+    }
+
     // Interval list generator
     function generateJourney() {
         const root = parseInt(document.getElementById('rootKey').value);
@@ -1209,6 +1351,73 @@
                 isBridge: isBridge,
                 explanation: explanation
             };
+        }
+
+        // 5. Output Chord Preparation (Resolve/Prepare for Output)
+        const prepareOutput = document.getElementById('prepareOutput').checked;
+        const resolutionMode = document.getElementById('resolutionMode').value;
+        const outputRoot = parseInt(document.getElementById('outputChordRoot').value);
+        const outputType = document.getElementById('outputChordType').value;
+
+        // Get actual output chord notes
+        let outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
+
+        if (prepareOutput) {
+            let outputRootNote = outputNotes[0] % 12; // Base root of output chord
+
+            if (resolutionMode === 'dominant') {
+                // Secondary Dominant of Output: V7 of output root
+                let vRoot = (outputRootNote + 7) % 12 + 48;
+                let notes = [vRoot, vRoot + 4, vRoot + 7, vRoot + 10].sort((a,b)=>a-b);
+                progression[TOTAL_BARS - 1] = {
+                    notes: notes,
+                    name: `${notesArray[vRoot % 12]}7 (V7 of Output)`,
+                    isBridge: true,
+                    explanation: `Secondary dominant V7 chord prepared dynamically to resolve into the external Output Chord (${notesArray[outputRootNote]} ${outputType.toUpperCase()}).`
+                };
+            } else if (resolutionMode === 'tritone') {
+                // Tritone Substitute of Output: SubV7 of output root
+                let subVRoot = (outputRootNote + 1) % 12 + 48;
+                let notes = [subVRoot, subVRoot + 4, subVRoot + 7, subVRoot + 10].sort((a,b)=>a-b);
+                progression[TOTAL_BARS - 1] = {
+                    notes: notes,
+                    name: `${notesArray[subVRoot % 12]}7 (SubV7 of Output)`,
+                    isBridge: true,
+                    explanation: `Tritone substitute SubV7 chord prepared dynamically to resolve cleanly into the external Output Chord (${notesArray[outputRootNote]} ${outputType.toUpperCase()}) via chromatic descent.`
+                };
+            } else if (resolutionMode === 'ii_V') {
+                // ii - V Preparation of Output: ii of output root in Bar 63, V7 in Bar 64
+                let iiRoot = (outputRootNote + 2) % 12 + 48;
+                let vRoot = (outputRootNote + 7) % 12 + 48;
+
+                let iiNotes = [iiRoot, iiRoot + 3, iiRoot + 7, iiRoot + 10].sort((a,b)=>a-b);
+                let vNotes = [vRoot, vRoot + 4, vRoot + 7, vRoot + 10].sort((a,b)=>a-b);
+
+                progression[TOTAL_BARS - 2] = {
+                    notes: iiNotes,
+                    name: `${notesArray[iiRoot % 12]}m7 (ii of Output)`,
+                    isBridge: true,
+                    explanation: `ii minor seventh chord preparing a classic ii-V turnaround cadence targeting the external Output Chord.`
+                };
+
+                progression[TOTAL_BARS - 1] = {
+                    notes: vNotes,
+                    name: `${notesArray[vRoot % 12]}7 (V7 of Output)`,
+                    isBridge: true,
+                    explanation: `V7 dominant seventh chord completing the ii-V turnaround cadence targeting the external Output Chord.`
+                };
+            }
+        }
+
+        // 6. Voice-leading pass
+        const voiceLeadInput = document.getElementById('voiceLeadInput').checked;
+        let inputNotes = parseCustomChord('inputChordRoot', 'inputChordType', 'inputChordCSV');
+
+        let referenceNotes = voiceLeadInput ? inputNotes : null;
+
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            progression[b].notes = voiceLeadChord(progression[b].notes, referenceNotes);
+            referenceNotes = progression[b].notes; // cascade forward
         }
 
         renderBarGrid();
@@ -1597,8 +1806,35 @@
             playingStep = 0;
             playingBar++;
             if (playingBar >= TOTAL_BARS) {
-                playingBar = 0;
-                globalStepIndex = 0;
+                const onEndBehavior = document.getElementById('onSequencerEnd').value;
+                if (onEndBehavior === 'play_output') {
+                    // Play final Output Chord
+                    const outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
+                    const tuningSystem = document.getElementById('tuningSys').value;
+                    const driftCents = parseFloat(document.getElementById('microDrift').value);
+
+                    // Trigger bass & chord beautifully
+                    triggerBassSynth(scheduledNextNoteTime, outputNotes[0], tuningSystem, driftCents);
+                    for (let n of outputNotes) {
+                        triggerArpSynth(scheduledNextNoteTime, [n], 0, tuningSystem, driftCents);
+                    }
+
+                    // Disable scheduler loop
+                    clearTimeout(schedulerTimerId);
+                    isPlaying = false;
+
+                    const playBtn = document.getElementById('playBtn');
+                    playBtn.innerText = "Start Engine";
+                    playBtn.classList.remove('btn-danger');
+                    playBtn.classList.add('btn-primary');
+
+                    document.getElementById('playingBarDisplay').innerText = `Finished!`;
+                    document.getElementById('playingChordDisplay').innerText = `Output Chord Played`;
+                    return;
+                } else {
+                    playingBar = 0;
+                    globalStepIndex = 0;
+                }
             }
         }
     }
@@ -1671,6 +1907,7 @@
         while (scheduledNextNoteTime < audioCtx.currentTime + scheduleAheadTimeSec) {
             scheduleSequenceNote(globalStepIndex, scheduledNextNoteTime);
             handleNextStep();
+            if (!isPlaying) return; // Exit loop immediately if stopped/resolved
         }
         schedulerTimerId = setTimeout(runScheduler, lookaheadTimeMs);
     }
