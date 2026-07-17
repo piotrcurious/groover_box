@@ -2125,6 +2125,14 @@
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
 
+        // Keep canvas responsive on window resize
+        window.addEventListener('resize', () => {
+            if (canvas && canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+        });
+
         function renderFrame() {
             if (!isPlaying) return;
             requestAnimationFrame(renderFrame);
