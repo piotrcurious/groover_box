@@ -947,6 +947,7 @@ const midiManager = new MidiManager();
 // Features a structurally authentic Fractal Fluency Engine that computes pitch and velocity
 // self-similarity based on the active/future layers of the Main Bass Progression and dynamic
 // user-defined Fractal Roots, propagating cleanly across musical resolution targets.
+// Upgraded with classic jazz arpeggio shapes, strict/modal scale constraints, and customizable shape templates.
 class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -955,6 +956,7 @@ class ArpGenerator {
     /**
      * Determines next arpeggiator note, velocity, and timing trigger parameters.
      * Computes proper Fractal Fluency based on the main bass progression at multiple structural resolutions.
+     * Supports classic jazz arpeggio shapes and strict diatonic scale/chord filtering constraints.
      * @param {Object} chord - Current chord configuration
      * @param {number} step - Resolution-independent virtual step index
      * @param {string} order - Arp note arrangement rule
@@ -978,6 +980,8 @@ class ArpGenerator {
      * @param {Array<boolean>} fractalRoots - 16-step boolean array indicating which rhythm steps act as fractal anchors
      * @param {Array<number>} fullBassProgression - Raw MIDI values representing the 64-bar bass progression
      * @param {number} globalSequencerStep - Total absolute step of the running sequencer (0-1023)
+     * @param {string} jazzShape - Classic jazz arpeggio degree mappings ('none', '1-3-5-7', '7-5-3-1', '3-5-7-9', '9-7-5-3', '1-5-3-7', 'full-stack')
+     * @param {string} melodicConstraint - Strictly filters output tones ('strict', 'scale-diatonic', 'chromatic')
      */
     getNextNote(
         chord,
@@ -1002,7 +1006,9 @@ class ArpGenerator {
         fractalResolutions = 3,
         fractalRoots = [],
         fullBassProgression = [],
-        globalSequencerStep = 0
+        globalSequencerStep = 0,
+        jazzShape = "none",
+        melodicConstraint = "scale-diatonic"
     ) {
         // --- Structural Fractal Fluency Calculation ---
         // Proper Fractal Fluency is calculated relative to the nearest step that acts as a "Fractal Fluency Root" (Anchor).
@@ -1118,33 +1124,81 @@ class ArpGenerator {
 
         const notes = chord.notes;
         const len = notes.length;
-        let noteIdx = 0;
+        let targetNote = notes[0];
 
-        // 2. Core Pattern/Arrangement Ordering Algorithms
-        if (order === "updown") {
-            const cycle = (len * 2) - 2;
-            const pos = this.index % Math.max(1, cycle);
-            noteIdx = pos < len ? pos : cycle - pos;
-        } else if (order === "brownian") {
-            const stepChange = Math.random() > 0.5 ? 1 : -1;
-            noteIdx = Math.abs((this.index + stepChange) % len);
-            this.index = noteIdx;
-        } else if (order === "funky") {
-            noteIdx = (this.index * 3 + (step % 3)) % len;
-        } else if (order === "converge") {
-            const cycleIdx = this.index % len;
-            if (cycleIdx % 2 === 0) {
-                noteIdx = Math.floor(cycleIdx / 2);
-            } else {
-                noteIdx = len - 1 - Math.floor(cycleIdx / 2);
-            }
-        } else if (order === "retrograde") {
-            noteIdx = (len - 1 - (this.index % len)) % len;
-        } else if (order === "enclosure") {
-            noteIdx = this.index % len;
+        // --- Algorithmic Scale/Mode Construction for Dynamic Arpeggio Shapes ---
+        const chordRoot = notes[0];
+        const isMinor = chord.quality.includes("min") || chord.quality.includes("m7b5") || chord.quality.includes("dim");
+        const isDominant = chord.quality.includes("dom") || chord.quality.includes("7");
+        const isAltered = chord.quality.includes("alt") || chord.quality.includes("sharp11");
+
+        let scaleIntervals = [0, 2, 4, 5, 7, 9, 11]; // Major default
+        if (isAltered) {
+            scaleIntervals = [0, 1, 3, 4, 6, 8, 10]; // Super Locrian / Altered
+        } else if (chord.quality.includes("m7b5")) {
+            scaleIntervals = [0, 1, 3, 5, 6, 8, 10]; // Locrian
+        } else if (chord.quality.includes("dim")) {
+            scaleIntervals = [0, 2, 3, 5, 6, 8, 9, 11]; // Diminished HW
+        } else if (isMinor) {
+            scaleIntervals = [0, 2, 3, 5, 7, 9, 10]; // Dorian minor
+        } else if (isDominant) {
+            scaleIntervals = [0, 2, 4, 5, 7, 9, 10]; // Mixolydian
         }
 
-        let targetNote = notes[noteIdx] || notes[0];
+        // Helper to extract chord degree dynamically from diatonic intervals (1st, 3rd, 5th, 7th, 9th, 11th, 13th)
+        const getScaleDegreePitch = (deg) => {
+            const scaleDegreeZeroIndexed = deg - 1;
+            const octaveShift = Math.floor(scaleDegreeZeroIndexed / scaleIntervals.length);
+            const scaleIndex = scaleDegreeZeroIndexed % scaleIntervals.length;
+            const interval = scaleIntervals[scaleIndex];
+            return chordRoot + (octaveShift * 12) + interval;
+        };
+
+        let degreeIndices = null;
+        if (jazzShape === "1-3-5-7") {
+            degreeIndices = [1, 3, 5, 7];
+        } else if (jazzShape === "7-5-3-1") {
+            degreeIndices = [7, 5, 3, 1];
+        } else if (jazzShape === "3-5-7-9") {
+            degreeIndices = [3, 5, 7, 9];
+        } else if (jazzShape === "9-7-5-3") {
+            degreeIndices = [9, 7, 5, 3];
+        } else if (jazzShape === "1-5-3-7") {
+            degreeIndices = [1, 5, 3, 7];
+        } else if (jazzShape === "full-stack") {
+            degreeIndices = [1, 3, 5, 7, 9, 11, 13];
+        }
+
+        if (degreeIndices) {
+            const shapePos = this.index % degreeIndices.length;
+            targetNote = getScaleDegreePitch(degreeIndices[shapePos]);
+        } else {
+            // Core Pattern/Arrangement Ordering Algorithms (if jazzShape is "none")
+            let noteIdx = 0;
+            if (order === "updown") {
+                const cycle = (len * 2) - 2;
+                const pos = this.index % Math.max(1, cycle);
+                noteIdx = pos < len ? pos : cycle - pos;
+            } else if (order === "brownian") {
+                const stepChange = Math.random() > 0.5 ? 1 : -1;
+                noteIdx = Math.abs((this.index + stepChange) % len);
+                this.index = noteIdx;
+            } else if (order === "funky") {
+                noteIdx = (this.index * 3 + (step % 3)) % len;
+            } else if (order === "converge") {
+                const cycleIdx = this.index % len;
+                if (cycleIdx % 2 === 0) {
+                    noteIdx = Math.floor(cycleIdx / 2);
+                } else {
+                    noteIdx = len - 1 - Math.floor(cycleIdx / 2);
+                }
+            } else if (order === "retrograde") {
+                noteIdx = (len - 1 - (this.index % len)) % len;
+            } else if (order === "enclosure") {
+                noteIdx = this.index % len;
+            }
+            targetNote = notes[noteIdx] || notes[0];
+        }
 
         // Apply our proper Fractal Fluency pitch transpositions!
         if (fractalIntensity > 0) {
@@ -1152,7 +1206,7 @@ class ArpGenerator {
         }
 
         // 3. Chromatic / Bebop Passing Enclosures
-        if (order === "enclosure" && len > 1) {
+        if (order === "enclosure" && len > 1 && !degreeIndices) {
             const encStep = step % 3;
             if (encStep === 0) {
                 targetNote += 1;
@@ -1163,11 +1217,11 @@ class ArpGenerator {
 
         // 4. Open Voicing Interval Spread Transpositions
         if (spread === 1) {
-            if (noteIdx % 2 !== 0) targetNote += 7;
+            if (this.index % 2 !== 0) targetNote += 7;
         } else if (spread === 2) {
-            if (noteIdx % 2 !== 0) targetNote += 12;
+            if (this.index % 2 !== 0) targetNote += 12;
         } else if (spread === 3) {
-            if (noteIdx % 2 !== 0) {
+            if (this.index % 2 !== 0) {
                 targetNote += 19;
             } else {
                 targetNote += 7;
@@ -1224,12 +1278,11 @@ class ArpGenerator {
         }
         targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
 
-        // 8. Dynamic Chord scale snapping: Force our fractal-altered notes back to beautiful chord degrees
-        if (fractalIntensity > 0 && notes.length > 0) {
-            // Find the closest valid chord degree (relative to octave transpositions)
+        // 8. Melodic Constraint Snap Strategies
+        if (melodicConstraint === "strict" && notes.length > 0) {
             let closestNote = notes[0];
             let closestDist = 999;
-            for (let i = 0; i < 4; i++) { // search across nearby octaves
+            for (let i = 0; i < 4; i++) {
                 const octShift = (i - 1) * 12;
                 for (let k = 0; k < notes.length; k++) {
                     const candidate = notes[k] + octShift;
@@ -1240,15 +1293,27 @@ class ArpGenerator {
                     }
                 }
             }
-            // Blend original arpeggio pitch towards scale/chord snap limits based on fractal intensity
-            if (closestDist > 0) {
-                targetNote = closestNote;
+            targetNote = closestNote;
+        } else if (melodicConstraint === "scale-diatonic" && notes.length > 0) {
+            const currentPitchClass = targetNote % 12;
+            let bestSnap = scaleIntervals[0];
+            let bestDist = 999;
+            for (let j = 0; j < scaleIntervals.length; j++) {
+                const candidateClass = (chordRoot + scaleIntervals[j]) % 12;
+                let d = Math.abs(currentPitchClass - candidateClass);
+                if (d > 6) d = 12 - d; // circular modulo check
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestSnap = candidateClass;
+                }
             }
+            const octaveOffset = Math.floor(targetNote / 12) * 12;
+            targetNote = octaveOffset + bestSnap;
         }
 
         // 9. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
-        if (Math.random() * 100 < mutationRate) {
+        if (melodicConstraint === "chromatic" && Math.random() * 100 < mutationRate) {
             const mutationInterval = Math.random() > 0.5 ? 2 : -1;
             const mutatedCandidate = targetNote + mutationInterval;
             if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
@@ -2067,25 +2132,25 @@ async function initApp() {
     patternInstance = new Pattern(4, 16);
     expectationInstance = new Expectation();
 
-    // Default Patterns (Drums four-on-the-floor, nice default arp syncopation)
+    // Default Patterns (Set up structurally authentic classical jazz and fractal test pattern)
     for (let b = 0; b < 4; b++) {
-        // Kick on 1, 5, 9, 13
+        // Drums
         for (let i = 0; i < 16; i += 4) patternInstance.data[b].kick[i] = true;
-        // Snare on 5, 13
         patternInstance.data[b].snare[4] = true;
         patternInstance.data[b].snare[12] = true;
-        // Hihat rapid sixteenths
         for (let i = 2; i < 16; i += 4) patternInstance.data[b].hihat[i] = true;
 
-        // Default bass walk trigs
-        for (let i = 0; i < 16; i += 4) patternInstance.data[b].bass[i] = true;
+        // One walking bass note trigger at step 0 only
+        patternInstance.data[b].bass[0] = true;
+        for (let i = 1; i < 16; i++) patternInstance.data[b].bass[i] = false;
 
-        // Default fractal root steps (FRAC RT) on downbeats
-        for (let i = 0; i < 16; i += 4) patternInstance.data[b].frac[i] = true;
+        // One fractal root trigger at step 0 (coinciding with the bass note)
+        patternInstance.data[b].frac[0] = true;
+        for (let i = 1; i < 16; i++) patternInstance.data[b].frac[i] = false;
 
-        // Default arp trigs with various default multipliers (1x, 2x, 3x, 4x, 0.5x)
-        for (let i = 0; i < 16; i += 3) {
-            patternInstance.data[b].arp[i] = (i % 6 === 0) ? 2 : 1;
+        // Arpeggiator active on EVERY step (0 to 15) with 1x multiplier
+        for (let i = 0; i < 16; i++) {
+            patternInstance.data[b].arp[i] = 1;
         }
     }
 
@@ -2289,6 +2354,9 @@ function scheduleStep(stepIndex, time) {
             const fractalRoots = barPattern.frac || new Array(16).fill(false);
             const globalStepIndex = (progressionBarIndex * 16) + activeStepInBar;
 
+            const jazzShape = document.getElementById("selectArpJazzShape").value || "none";
+            const melodicConstraint = document.getElementById("selectArpConstraint").value || "scale-diatonic";
+
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
                 virtualStep,
@@ -2312,7 +2380,9 @@ function scheduleStep(stepIndex, time) {
                 fractalResolutions,
                 fractalRoots,
                 preRenderedBassNotes,
-                globalStepIndex
+                globalStepIndex,
+                jazzShape,
+                melodicConstraint
             );
 
             if (arpRes.trigger) {
@@ -2688,6 +2758,25 @@ function bindUIEvents() {
         patternInstance.copyBarToAll(0); // Copy Bar 1 pattern to Bars 2, 3, 4
         renderGrids();
         alert("Copied Bar 1 pattern to all bars.");
+    });
+
+    document.getElementById("btnLoadJazzTestPattern").addEventListener("click", () => {
+        for (let b = 0; b < 4; b++) {
+            // One walking bass note trigger at step 0 only
+            patternInstance.data[b].bass[0] = true;
+            for (let i = 1; i < 16; i++) patternInstance.data[b].bass[i] = false;
+
+            // One fractal root trigger at step 0 (coinciding with the bass note)
+            patternInstance.data[b].frac[0] = true;
+            for (let i = 1; i < 16; i++) patternInstance.data[b].frac[i] = false;
+
+            // Arpeggiator active on EVERY step (0 to 15) with 1x multiplier
+            for (let i = 0; i < 16; i++) {
+                patternInstance.data[b].arp[i] = 1;
+            }
+        }
+        renderGrids();
+        alert("Loaded classical jazz & fractal fluency test pattern.");
     });
 
     document.getElementById("btnEuclideanGen").addEventListener("click", () => {

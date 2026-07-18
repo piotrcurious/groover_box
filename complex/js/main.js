@@ -40,25 +40,25 @@ async function initApp() {
     patternInstance = new Pattern(4, 16);
     expectationInstance = new Expectation();
 
-    // Default Patterns (Drums four-on-the-floor, nice default arp syncopation)
+    // Default Patterns (Set up structurally authentic classical jazz and fractal test pattern)
     for (let b = 0; b < 4; b++) {
-        // Kick on 1, 5, 9, 13
+        // Drums
         for (let i = 0; i < 16; i += 4) patternInstance.data[b].kick[i] = true;
-        // Snare on 5, 13
         patternInstance.data[b].snare[4] = true;
         patternInstance.data[b].snare[12] = true;
-        // Hihat rapid sixteenths
         for (let i = 2; i < 16; i += 4) patternInstance.data[b].hihat[i] = true;
 
-        // Default bass walk trigs
-        for (let i = 0; i < 16; i += 4) patternInstance.data[b].bass[i] = true;
+        // One walking bass note trigger at step 0 only
+        patternInstance.data[b].bass[0] = true;
+        for (let i = 1; i < 16; i++) patternInstance.data[b].bass[i] = false;
 
-        // Default fractal root steps (FRAC RT) on downbeats
-        for (let i = 0; i < 16; i += 4) patternInstance.data[b].frac[i] = true;
+        // One fractal root trigger at step 0 (coinciding with the bass note)
+        patternInstance.data[b].frac[0] = true;
+        for (let i = 1; i < 16; i++) patternInstance.data[b].frac[i] = false;
 
-        // Default arp trigs with various default multipliers (1x, 2x, 3x, 4x, 0.5x)
-        for (let i = 0; i < 16; i += 3) {
-            patternInstance.data[b].arp[i] = (i % 6 === 0) ? 2 : 1;
+        // Arpeggiator active on EVERY step (0 to 15) with 1x multiplier
+        for (let i = 0; i < 16; i++) {
+            patternInstance.data[b].arp[i] = 1;
         }
     }
 
@@ -262,6 +262,9 @@ function scheduleStep(stepIndex, time) {
             const fractalRoots = barPattern.frac || new Array(16).fill(false);
             const globalStepIndex = (progressionBarIndex * 16) + activeStepInBar;
 
+            const jazzShape = document.getElementById("selectArpJazzShape").value || "none";
+            const melodicConstraint = document.getElementById("selectArpConstraint").value || "scale-diatonic";
+
             const arpRes = arpGenerator.getNextNote(
                 activeChord,
                 virtualStep,
@@ -285,7 +288,9 @@ function scheduleStep(stepIndex, time) {
                 fractalResolutions,
                 fractalRoots,
                 preRenderedBassNotes,
-                globalStepIndex
+                globalStepIndex,
+                jazzShape,
+                melodicConstraint
             );
 
             if (arpRes.trigger) {
@@ -661,6 +666,25 @@ function bindUIEvents() {
         patternInstance.copyBarToAll(0); // Copy Bar 1 pattern to Bars 2, 3, 4
         renderGrids();
         alert("Copied Bar 1 pattern to all bars.");
+    });
+
+    document.getElementById("btnLoadJazzTestPattern").addEventListener("click", () => {
+        for (let b = 0; b < 4; b++) {
+            // One walking bass note trigger at step 0 only
+            patternInstance.data[b].bass[0] = true;
+            for (let i = 1; i < 16; i++) patternInstance.data[b].bass[i] = false;
+
+            // One fractal root trigger at step 0 (coinciding with the bass note)
+            patternInstance.data[b].frac[0] = true;
+            for (let i = 1; i < 16; i++) patternInstance.data[b].frac[i] = false;
+
+            // Arpeggiator active on EVERY step (0 to 15) with 1x multiplier
+            for (let i = 0; i < 16; i++) {
+                patternInstance.data[b].arp[i] = 1;
+            }
+        }
+        renderGrids();
+        alert("Loaded classical jazz & fractal fluency test pattern.");
     });
 
     document.getElementById("btnEuclideanGen").addEventListener("click", () => {
