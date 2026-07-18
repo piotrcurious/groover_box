@@ -1766,6 +1766,11 @@
     // Triggered synth nodes tracking to stop them on Panic button click
     let activeSynthNodes = [];
 
+    // Note history tracking for time-domain interdependency and melodic resolution
+    let lastBassMidiPlayed = null;
+    let lastArpMidiPlayed = null;
+    let lastBassMotionDir = 0; // -1 = down, 1 = up, 0 = stable/none
+
     function initAudioContext() {
         if (audioCtx) return;
 
@@ -1881,21 +1886,105 @@
 
     // --- Synthesizers ---
 
-    // Plucky Funky Jazz Bass
-    function triggerBassSynth(time, baseMidiNote, tuningSystem, driftCents) {
+    // Plucky Funky Jazz Bass with Time-Domain Melodic Optimizer
+    function triggerBassSynth(time, chordNotesOrNote, stepInBar = 0, tuningSystem = "12tet", driftCents = 0) {
         if (!audioCtx) return;
 
-        // Drop 2 octaves for deep funky bass
-        let bassMidi = baseMidiNote - 24;
+        // Ensure chordNotes is a clean array of MIDI notes
+        let chordNotes = Array.isArray(chordNotesOrNote) ? chordNotesOrNote : [chordNotesOrNote];
+        if (chordNotes.length === 0) return;
 
-        // Auto-transposition: Ensure bass remains in the optimal, punchy, and fully audible register (MIDI 24 to 48)
-        while (bassMidi < 24) {
-            bassMidi += 12;
-        }
-        while (bassMidi > 48) {
-            bassMidi -= 12;
+        let rootMidi = chordNotes[0];
+
+        // Generate candidates for the bass note on this step
+        let candidates = [rootMidi];
+
+        if (chordNotes.length > 1) candidates.push(chordNotes[1]);
+        if (chordNotes.length > 2) candidates.push(chordNotes[2]);
+        if (chordNotes.length > 3) candidates.push(chordNotes[3]);
+
+        if (lastBassMidiPlayed !== null) {
+            candidates.push(lastBassMidiPlayed + 1);
+            candidates.push(lastBassMidiPlayed - 1);
+            candidates.push(lastBassMidiPlayed + 2);
+            candidates.push(lastBassMidiPlayed - 2);
         }
 
+        // Standardize all candidates into the punchy bass octave range [24, 48]
+        let mappedCandidates = candidates.map(midi => {
+            let m = midi;
+            while (m < 24) m += 12;
+            while (m > 48) m -= 12;
+            return m;
+        });
+
+        // Filter out duplicates
+        mappedCandidates = Array.from(new Set(mappedCandidates));
+
+        let bestBassMidi = mappedCandidates[0];
+        let lowestCost = Infinity;
+
+        for (let cand of mappedCandidates) {
+            let cost = 0;
+
+            // 1. History Distance Cost
+            if (lastBassMidiPlayed !== null) {
+                let dist = Math.abs(cand - lastBassMidiPlayed);
+                if (dist === 0) {
+                    cost += 3.0; // avoid repeating the exact same bass note consecutively if possible
+                } else if (dist === 1 || dist === 2) {
+                    cost += 0.5; // highly preferred step-wise walking motion
+                } else if (dist === 5 || dist === 7 || dist === 12) {
+                    cost += 1.0; // nice perfect intervals
+                } else {
+                    cost += dist * 1.5; // penalize large awkward leaps
+                }
+            }
+
+            // 2. Chord / Beat Anchoring Cost
+            let isChordTone = chordNotes.some(cn => (cn % 12) === (cand % 12));
+            if (stepInBar === 0) {
+                if (cand % 12 === rootMidi % 12) {
+                    cost += 0.0; // Perfect root anchor
+                } else if (isChordTone) {
+                    cost += 1.5; // Good chord tone
+                } else {
+                    cost += 12.0; // Heavily penalize non-chord chromatic approach on beat 1
+                }
+            } else {
+                if (!isChordTone) {
+                    cost += 2.0; // chromatic passing notes are fine, but chord tones are slightly preferred
+                }
+            }
+
+            // 3. Interdependency (Arp Clash) Cost
+            if (lastArpMidiPlayed !== null) {
+                let arpPC = lastArpMidiPlayed % 12;
+                let candPC = cand % 12;
+                let diffPC = Math.abs(candPC - arpPC);
+
+                if (diffPC === 0) {
+                    cost += 6.0; // Avoid doubling the exact pitch class with the arpeggiator simultaneously
+                } else if (diffPC === 1 || diffPC === 11) {
+                    cost += 8.0; // Avoid harsh minor-second interval clash with the arpeggiator
+                }
+            }
+
+            if (cost < lowestCost) {
+                lowestCost = cost;
+                bestBassMidi = cand;
+            }
+        }
+
+        // Track motion direction
+        if (lastBassMidiPlayed !== null) {
+            if (bestBassMidi > lastBassMidiPlayed) lastBassMotionDir = 1;
+            else if (bestBassMidi < lastBassMidiPlayed) lastBassMotionDir = -1;
+            else lastBassMotionDir = 0;
+        }
+        lastBassMidiPlayed = bestBassMidi;
+
+        let bassMidi = bestBassMidi;
         let frequency = midiToFrequency(bassMidi, tuningSystem, driftCents);
 
         const osc1 = audioCtx.createOscillator();
@@ -1959,14 +2048,13 @@
         let filterDepth = parseFloat(document.getElementById('arpFilterDepth').value) / 100;
         let decayMs = parseFloat(document.getElementById('arpFilterDecay').value);
 
-        // 1. Select note based on pattern algorithm
+        // 1. Select initial target note based on pattern algorithm
         let noteIndex = 0;
         let selectedMidi = chordNotes[0];
 
         if (patternType === 'up') {
             noteIndex = arpNoteWalkCount % chordNotes.length;
             selectedMidi = chordNotes[noteIndex];
-            // Upwards Octave shifting
             let octShift = Math.floor(arpNoteWalkCount / chordNotes.length) % octaveRange;
             selectedMidi += octShift * 12;
         } else if (patternType === 'down') {
@@ -1988,23 +2076,97 @@
             selectedMidi = chordNotes[Math.floor(Math.random() * chordNotes.length)];
             selectedMidi += Math.floor(Math.random() * octaveRange) * 12;
         } else if (patternType === 'thumb') {
-            // Alternates between Root (thumb note) and other chord notes
             if (stepInBar % 2 === 0) {
-                selectedMidi = chordNotes[0]; // Root
+                selectedMidi = chordNotes[0];
             } else {
                 noteIndex = 1 + (Math.floor(arpNoteWalkCount / 2) % (chordNotes.length - 1 || 1));
-                selectedMidi = chordNotes[noteIndex] + 12; // High octave answer
+                selectedMidi = chordNotes[noteIndex] + 12;
             }
         } else if (patternType === 'complex') {
-            // Complex syncopated walk with shifting indices
             let offset = [0, 7, 3, 12, 5, 10, 14, 2][stepInBar % 8];
             noteIndex = (arpNoteWalkCount + offset) % chordNotes.length;
             selectedMidi = chordNotes[noteIndex];
             if (stepInBar % 3 === 0) selectedMidi += 12;
         }
 
-        // Arp Pluck is voiced higher
+        // Arp Pluck default transposition offset
         selectedMidi += 12;
+
+        // 2. TIME-DOMAIN INTERDEPENDENCY & HISTORY MELODIC OPTIMIZER
+        // Generate potential alternative candidates across chord notes and octave variations
+        let arpCandidates = [selectedMidi];
+
+        for (let cn of chordNotes) {
+            let baseN = cn + 12; // Arp starts higher
+            for (let oct = 0; oct < octaveRange; oct++) {
+                arpCandidates.push(baseN + oct * 12);
+            }
+        }
+
+        // Standardize candidates to a reasonable arpeggio frequency zone [48, 88]
+        let mappedArpCandidates = arpCandidates.map(midi => {
+            let m = midi;
+            while (m < 48) m += 12;
+            while (m > 88) m -= 12;
+            return m;
+        });
+
+        // Unique candidates
+        mappedArpCandidates = Array.from(new Set(mappedArpCandidates));
+
+        let bestArpMidi = selectedMidi;
+        let lowestArpCost = Infinity;
+
+        for (let cand of mappedArpCandidates) {
+            let cost = 0;
+
+            // Pattern Alignment (stay close to the original structural pattern target note)
+            let distFromTarget = Math.abs(cand - selectedMidi);
+            cost += distFromTarget * 1.0;
+
+            // Melodic History Motion
+            if (lastArpMidiPlayed !== null) {
+                let distFromPrev = Math.abs(cand - lastArpMidiPlayed);
+                if (distFromPrev === 0) {
+                    cost += 2.0; // avoid stagnant note repetitions if possible
+                } else if (distFromPrev <= 5) {
+                    cost += 0.0; // reward elegant step-wise intervals
+                } else if (distFromPrev <= 12) {
+                    cost += 1.0; // acceptable chordal leaps
+                } else {
+                    cost += distFromPrev * 2.5; // penalize extreme leaps
+                }
+
+                // Counterpoint Motion Interdependency with Bass
+                if (lastBassMotionDir !== 0) {
+                    let arpMotionDir = (cand > lastArpMidiPlayed) ? 1 : (cand < lastArpMidiPlayed ? -1 : 0);
+                    if (arpMotionDir !== 0 && arpMotionDir === -lastBassMotionDir) {
+                        cost -= 3.5; // Highly reward beautiful contrary voice movement
+                    }
+                }
+            }
+
+            // Pitch-class Clash Interdependency with Bass
+            if (lastBassMidiPlayed !== null) {
+                let bassPC = lastBassMidiPlayed % 12;
+                let candPC = cand % 12;
+                let diffPC = Math.abs(candPC - bassPC);
+
+                if (diffPC === 0) {
+                    cost += 10.0; // Avoid unison/octave doubling
+                } else if (diffPC === 1 || diffPC === 11) {
+                    cost += 12.0; // Avoid harsh close dissonant clash with active bass line
+                }
+            }
+
+            if (cost < lowestArpCost) {
+                lowestArpCost = cost;
+                bestArpMidi = cand;
+            }
+        }
+
+        lastArpMidiPlayed = bestArpMidi;
+        selectedMidi = bestArpMidi;
 
         let frequency = midiToFrequency(selectedMidi, tuningSystem, driftCents);
 
@@ -2160,7 +2322,7 @@
                     }
 
                     // Trigger bass & chord beautifully
-                    triggerBassSynth(scheduledNextNoteTime, outputNotes[0], tuningSystem, driftCents);
+                    triggerBassSynth(scheduledNextNoteTime, outputNotes, 0, tuningSystem, driftCents);
                     for (let n of outputNotes) {
                         triggerArpSynth(scheduledNextNoteTime, [n], 0, tuningSystem, driftCents);
                     }
@@ -2203,7 +2365,7 @@
 
         // Sound triggers
         if (sequencerData.riddim[bar][stepInBar]) {
-            triggerBassSynth(time, chordData.notes[0], tuningSystem, driftCents);
+            triggerBassSynth(time, chordData.notes, stepInBar, tuningSystem, driftCents);
         }
 
         if (sequencerData.arp[bar][stepInBar]) {
