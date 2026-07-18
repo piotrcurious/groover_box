@@ -1753,6 +1753,8 @@
     let exciterGain = null;
     let highExciterFilter = null;
     let analyserNode = null;
+    let arpDelayNode = null;
+    let arpDelayFeedback = null;
     let scheduledNextNoteTime = 0.0;
     let schedulerTimerId = null;
     let lookaheadTimeMs = 25.0;
@@ -1840,6 +1842,16 @@
 
         // Direct merge path to master
         channelMerger.connect(masterGain);
+
+        // Permanent Global Arp Delay Feedback Loop
+        arpDelayNode = audioCtx.createDelay();
+        arpDelayFeedback = audioCtx.createGain();
+        arpDelayNode.delayTime.setValueAtTime(0.18, audioCtx.currentTime); // 16th note echo
+        arpDelayFeedback.gain.setValueAtTime(0.25, audioCtx.currentTime); // Echo volume/decay feedback
+
+        arpDelayNode.connect(arpDelayFeedback);
+        arpDelayFeedback.connect(arpDelayNode); // feedback loop
+        arpDelayFeedback.connect(saturationNode); // send feedback signal to master saturation/chain
 
         // Kickoff canvas visualizer loop
         drawVisualizer();
@@ -2037,12 +2049,6 @@
         gainNode.gain.setValueAtTime(aVol * aSustain + 0.001, arpStopTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, arpStopTime + aRelease);
 
-        // Delay Echo Feedback Loop specifically for lush arpeggio
-        const delayNode = audioCtx.createDelay();
-        const delayFeedback = audioCtx.createGain();
-        delayNode.delayTime.setValueAtTime(0.18, time); // 16th note echo
-        delayFeedback.gain.setValueAtTime(0.25, time); // Echo volume
-
         osc.connect(filterNode);
         subOsc.connect(filterNode);
         filterNode.connect(gainNode);
@@ -2050,11 +2056,10 @@
         // Connect pluck to Haas/Sat module
         gainNode.connect(saturationNode);
 
-        // Connect Pluck to delay loop
-        gainNode.connect(delayNode);
-        delayNode.connect(delayFeedback);
-        delayFeedback.connect(delayNode); // feedback
-        delayFeedback.connect(saturationNode); // feedback output into master chain
+        // Connect Pluck to global permanent delay loop
+        if (arpDelayNode) {
+            gainNode.connect(arpDelayNode);
+        }
 
         // Start & Stop
         osc.start(time);
