@@ -493,6 +493,213 @@
             margin-bottom: 5px;
             font-size: 0.85rem;
         }
+
+        /* Breeding Lab styling */
+        .breeding-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            .breeding-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .candidate-card {
+            background-color: #0d111a;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .candidate-card.active-loaded {
+            border-color: var(--accent-base);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+        }
+
+        .candidate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dna-strip {
+            height: 10px;
+            background-color: #1a2130;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .dna-bar {
+            flex: 1;
+            height: 100%;
+        }
+
+        .dna-bar.is-base {
+            background-color: var(--accent-base);
+        }
+
+        .dna-bar.is-bridge {
+            background-color: var(--accent-bridge);
+        }
+
+        /* --- 64-BAR MASTER STACK SEQUENCER STYLES --- */
+        .master-sequencer-scroll {
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scroll-behavior: smooth;
+        }
+
+        /* Sleek Cyber Scrollbar */
+        .master-sequencer-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-track {
+            background: #090c12;
+            border-radius: 4px;
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-thumb {
+            background: #1f2736;
+            border-radius: 4px;
+            border: 1px solid var(--panel-border);
+        }
+        .master-sequencer-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-base);
+        }
+
+        .sequencer-pair-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        /* Responsive stack on mobile/smaller screens */
+        @media (max-width: 900px) {
+            .sequencer-pair-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
+        .sequencer-bar-card {
+            background: #0f131a;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+
+        .sequencer-bar-card.base-bar {
+            border-left: 4px solid #10b981; /* Green Consonant Base Line */
+        }
+
+        .sequencer-bar-card.bridge-bar {
+            border-left: 4px solid var(--accent-bridge); /* Pink Tense Bridge Line */
+        }
+
+        .sequencer-bar-card:hover {
+            background: #141924;
+            border-color: #3b465e;
+        }
+
+        .sequencer-bar-card.selected-card {
+            border-color: rgba(0, 242, 254, 0.4);
+            background: #121822;
+            box-shadow: inset 0 0 6px rgba(0, 242, 254, 0.1);
+        }
+
+        .sequencer-bar-card.active-card {
+            border-color: var(--accent-base);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25), inset 0 0 4px rgba(0, 242, 254, 0.15);
+        }
+
+        .bar-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.76rem;
+            font-weight: bold;
+        }
+
+        .bar-title {
+            color: var(--text-muted);
+        }
+
+        .sequencer-bar-card.selected-card .bar-title {
+            color: var(--accent-base);
+        }
+
+        .bar-chord-name {
+            font-weight: 800;
+        }
+
+        .compact-grid-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid-icon {
+            font-size: 0.8rem;
+            width: 14px;
+            text-align: center;
+        }
+
+        .compact-steps {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 4px;
+            flex-grow: 1;
+        }
+
+        .compact-step-cell {
+            aspect-ratio: 0.8;
+            background-color: var(--grid-off);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.08s;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .compact-step-cell:hover {
+            background-color: #242c3a;
+        }
+
+        /* Beat markings */
+        .compact-step-cell:nth-child(4n+1) {
+            border-left: 1.5px solid #4a5568;
+        }
+
+        .compact-step-cell.riddim-active {
+            background-color: var(--accent-bridge);
+            box-shadow: 0 0 8px var(--accent-bridge);
+        }
+
+        .compact-step-cell.arp-active {
+            background-color: var(--accent-base);
+            box-shadow: 0 0 8px var(--accent-base);
+        }
+
+        .compact-step-cell.current-playhead {
+            outline: 2px solid #ffffff;
+            z-index: 5;
+            box-shadow: 0 0 10px #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -578,6 +785,22 @@
             </div>
 
             <div class="control-group">
+                <label>Harmonic progression Algorithm</label>
+                <select id="progStyle">
+                    <option value="jazz_standards" selected>Classic Jazz Standard Cycle</option>
+                    <option value="circle_fifths">Circle of Fifths Backwards Walk</option>
+                    <option value="modal_interchange">Modal Interchange (Parallel Borrowing)</option>
+                    <option value="coltrane_changes">Coltrane Changes (Multi-Tonic 3rds)</option>
+                    <option value="line_cliche">Line Cliché (Chromatic Walkdown)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Tension & Dissonance Level: <span id="tensionVal">60%</span></label>
+                <input type="range" id="tensionLevel" min="0" max="100" value="60">
+            </div>
+
+            <div class="control-group">
                 <label>Tense Bridge Scale</label>
                 <select id="bridgeChordType">
                     <option value="hirajoshi" selected>Hirajoshi Pentatonic (Dark Tension)</option>
@@ -585,6 +808,29 @@
                     <option value="tritone">Tritone-Shifted Minor Pentatonic</option>
                     <option value="insen">Insen Pentatonic (Melancholic Tension)</option>
                 </select>
+            </div>
+
+            <div class="control-group">
+                <label>Bridge Root Key Interval</label>
+                <select id="bridgeInterval">
+                    <option value="6" selected>Tritone (+6 semitones)</option>
+                    <option value="3">Minor 3rd (+3 semitones)</option>
+                    <option value="1">Half-Step Up (+1 semitone)</option>
+                    <option value="7">Perfect 5th (+7 semitones)</option>
+                    <option value="8">Minor 6th (+8 semitones)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Generative Mutation Rate: <span id="mutationVal">20%</span></label>
+                <input type="range" id="mutationRate" min="0" max="100" value="20">
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="secondaryDominants" style="width: auto; margin: 0;" checked>
+                    <span>Inject Secondary Dominants</span>
+                </label>
             </div>
 
             <div class="control-group">
@@ -606,6 +852,98 @@
             </div>
 
             <button id="generateProgBtn" class="btn btn-primary">Generate 64-Bar Journey</button>
+
+            <!-- Composition Integration -->
+            <div class="panel-header" style="margin-top: 10px;">
+                <span class="panel-title">🔗 Composition Integration</span>
+            </div>
+
+            <div class="control-group">
+                <label>Input Chord (Start Anchor)</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="inputChordRoot" style="flex: 1;">
+                        <option value="48" selected>C</option>
+                        <option value="49">C# / Db</option>
+                        <option value="50">D</option>
+                        <option value="51">D# / Eb</option>
+                        <option value="52">E</option>
+                        <option value="53">F</option>
+                        <option value="54">F# / Gb</option>
+                        <option value="55">G</option>
+                        <option value="56">G# / Ab</option>
+                        <option value="57">A</option>
+                        <option value="58">A# / Bb</option>
+                        <option value="59">B</option>
+                    </select>
+                    <select id="inputChordType" style="flex: 1.5;">
+                        <option value="maj7" selected>Maj7 (Consonant)</option>
+                        <option value="m7">m7 (Soft Minor)</option>
+                        <option value="7">7 (Dominant)</option>
+                        <option value="m7b5">Half-Diminished</option>
+                        <option value="dim7">Diminished 7th</option>
+                    </select>
+                </div>
+                <input type="text" id="inputChordCSV" placeholder="Or enter MIDI CSV (e.g. 48,52,55,59)" style="background-color: #0b0d13; border: 1px solid var(--panel-border); border-radius: 6px; color: var(--text-main); padding: 8px 12px; font-size: 0.85rem; margin-top: 5px;">
+            </div>
+
+            <div class="control-group">
+                <label>Output Chord (Destination)</label>
+                <div style="display: flex; gap: 5px;">
+                    <select id="outputChordRoot" style="flex: 1;">
+                        <option value="53" selected>F</option>
+                        <option value="48">C</option>
+                        <option value="49">C# / Db</option>
+                        <option value="50">D</option>
+                        <option value="51">D# / Eb</option>
+                        <option value="52">E</option>
+                        <option value="54">F# / Gb</option>
+                        <option value="55">G</option>
+                        <option value="56">G# / Ab</option>
+                        <option value="57">A</option>
+                        <option value="58">A# / Bb</option>
+                        <option value="59">B</option>
+                    </select>
+                    <select id="outputChordType" style="flex: 1.5;">
+                        <option value="maj7" selected>Maj7 (Consonant)</option>
+                        <option value="m7">m7 (Soft Minor)</option>
+                        <option value="7">7 (Dominant)</option>
+                        <option value="m7b5">Half-Diminished</option>
+                        <option value="dim7">Diminished 7th</option>
+                    </select>
+                </div>
+                <input type="text" id="outputChordCSV" placeholder="Or enter MIDI CSV (e.g. 53,57,60,64)" style="background-color: #0b0d13; border: 1px solid var(--panel-border); border-radius: 6px; color: var(--text-main); padding: 8px 12px; font-size: 0.85rem; margin-top: 5px;">
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="voiceLeadInput" style="width: auto; margin: 0;" checked>
+                    <span>Smooth Voice-Lead from Input</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="prepareOutput" style="width: auto; margin: 0;" checked>
+                    <span>Prepare/Resolve for Output</span>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>Resolution Mode</label>
+                <select id="resolutionMode">
+                    <option value="dominant" selected>V7 Secondary Dominant</option>
+                    <option value="tritone">SubV7 Tritone Substitute</option>
+                    <option value="ii_V">ii - V Preparation (2 Bars)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>On Sequencer End</label>
+                <select id="onSequencerEnd">
+                    <option value="loop" selected>Loop back to Bar 1</option>
+                    <option value="play_output">Play Output Chord & Stop</option>
+                </select>
+            </div>
 
             <!-- Tuning and Intonation -->
             <div class="panel-header" style="margin-top: 10px;">
@@ -687,23 +1025,107 @@
                 <label>Arp Filter Decay: <span id="arpDecayVal">150 ms</span></label>
                 <input type="range" id="arpFilterDecay" min="30" max="500" value="150">
             </div>
+
+            <!-- Voice Editors Section -->
+            <div class="panel-header" style="margin-top: 10px;">
+                <span class="panel-title">🎚️ Synthesizer Voice Editors</span>
+            </div>
+
+            <!-- Bass Voice Parameters -->
+            <div style="background-color: rgba(255,255,255,0.015); padding: 12px; border-radius: 6px; border: 1px solid var(--panel-border); margin-bottom: 12px;">
+                <strong style="color: var(--accent-bridge); font-size: 0.8rem; display: block; margin-bottom: 8px;">🎸 Bass Synth Voice</strong>
+                <div class="control-group" style="margin-bottom: 8px;">
+                    <label>Bass Volume: <span id="bassVolVal">70%</span></label>
+                    <input type="range" id="bassVol" min="0" max="100" value="70">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Attack: <span id="bassAttackVal">15 ms</span></label>
+                        <input type="range" id="bassAttack" min="5" max="300" value="15">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Decay: <span id="bassDecayVal">300 ms</span></label>
+                        <input type="range" id="bassDecay" min="30" max="1000" value="300">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Sustain: <span id="bassSustainVal">10%</span></label>
+                        <input type="range" id="bassSustain" min="0" max="100" value="10">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Release: <span id="bassReleaseVal">100 ms</span></label>
+                        <input type="range" id="bassRelease" min="30" max="1000" value="100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arp Voice Parameters -->
+            <div style="background-color: rgba(255,255,255,0.015); padding: 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                <strong style="color: var(--accent-base); font-size: 0.8rem; display: block; margin-bottom: 8px;">🌀 Arp Synth Voice</strong>
+                <div class="control-group" style="margin-bottom: 8px;">
+                    <label>Arp Volume: <span id="arpVolVal">35%</span></label>
+                    <input type="range" id="arpVol" min="0" max="100" value="35">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Attack: <span id="arpAttackVal">8 ms</span></label>
+                        <input type="range" id="arpAttack" min="5" max="300" value="8">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Decay: <span id="arpDecayVal">150 ms</span></label>
+                        <input type="range" id="arpDecay" min="30" max="1000" value="150">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Sustain: <span id="arpSustainVal">20%</span></label>
+                        <input type="range" id="arpSustain" min="0" max="100" value="20">
+                    </div>
+                    <div class="control-group" style="margin-bottom: 0;">
+                        <label style="font-size:0.7rem;">Release: <span id="arpReleaseVal">150 ms</span></label>
+                        <input type="range" id="arpRelease" min="30" max="1000" value="150">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Main Workspace -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- 64 Bar Beat Box Grid -->
+            <!-- 64-Bar Master Stack Sequencer (Dual Channel) -->
             <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">🗺️ 64-Bar Environment Grid (Click to Edit Bar)</span>
-                    <span id="editorBarIndicator" style="color: var(--accent-base); font-size: 0.8rem; font-weight: bold;">Editing: Bar 1</span>
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span class="panel-title">🎹 64-Bar Master Stack Sequencer (Dual Channel)</span>
+                    <span id="editorBarIndicator" style="color: var(--accent-base); font-size: 0.85rem; font-weight: bold; background: rgba(0, 242, 254, 0.05); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(0, 242, 254, 0.15);">Editing Focus: Bar 1</span>
                 </div>
-                <div class="bar-overview-container">
-                    <div class="bar-overview-grid" id="barOverviewGrid"></div>
+
+                <div class="sequencer-header-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px; background: #0c0f14; border-bottom: 1px solid var(--panel-border);">
+                    <div style="display: flex; gap: 10px; align-items: center; background: #131722; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                        <label style="margin:0; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                            🔁 Loop Range:
+                        </label>
+                        <select id="loopStart" style="background: #171d26; border: 1px solid var(--panel-border); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;"></select>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">to</span>
+                        <select id="loopEnd" style="background: #171d26; border: 1px solid var(--panel-border); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;"></select>
+                        <button class="btn btn-xs btn-primary" id="resetLoopBtn" style="margin-left: 4px;">All 64</button>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; background: #131722; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                        <input type="checkbox" id="autoScrollActive" checked style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--accent-base);">
+                        <label for="autoScrollActive" style="margin:0; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            📺 Auto-Scroll Follow
+                        </label>
+                    </div>
+
+                    <div class="sequencer-quick-btns" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-xs" id="clearBarBtn">Clear Focus</button>
+                        <button class="btn btn-xs" id="randRiddimBtn">Rand Bass</button>
+                        <button class="btn btn-xs" id="randArpBtn">Rand Arp</button>
+                        <button class="btn btn-xs btn-danger" id="copyToAllBtn">Copy Focus to All</button>
+                    </div>
                 </div>
-                <div class="guide-banner">
-                    <h3>💡 Navigating the 64-Bar Space</h3>
-                    Left borders indicate bar structure: <strong style="color: var(--accent-base);">Consonant Bases</strong> are green; <strong style="color: var(--accent-bridge);">Tense Bridges</strong> are pink/red. Small dots show whether the bar contains programmed Riddim (pink dot) or Arp (teal dot) patterns.
+
+                <div style="padding: 16px;">
+                    <div class="master-sequencer-scroll" id="masterSequencerGrid">
+                        <!-- 32 rows of paired bars will be dynamically generated here -->
+                    </div>
                 </div>
             </div>
 
@@ -728,41 +1150,115 @@
                 </div>
             </div>
 
-            <!-- Step Sequencer Panel -->
+            <!-- Evolutionary Genetic Breeding Lab Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">🎛️ Beat Box Editor (16 Steps per Bar)</span>
+                    <span class="panel-title">🧬 Evolutionary Genetic Breeding Lab</span>
+                </div>
+                <div class="guide-banner" style="margin-bottom: 5px;">
+                    <h3>🧪 Manual Hybrid Selection & DNA Splicing</h3>
+                    Store up to 4 parallel candidate progressions (chromosomes) in the incubator below. Select two parent candidates, choose your preferred crossover method, configure mutation probability and splice new children to evolve the perfect microtonal jazz session!
                 </div>
 
-                <div class="sequencer-header-actions">
-                    <span class="sequencer-title" id="sequencerTitle">Bar 1 Step Sequencer</span>
-                    <div class="sequencer-quick-btns">
-                        <button class="btn btn-xs" id="prevBarBtn">◀ Prev Bar</button>
-                        <button class="btn btn-xs" id="nextBarBtn">Next Bar ▶</button>
-                        <button class="btn btn-xs" id="clearBarBtn">Clear Bar</button>
-                        <button class="btn btn-xs" id="randRiddimBtn">Rand Bass</button>
-                        <button class="btn btn-xs" id="randArpBtn">Rand Arp</button>
-                        <button class="btn btn-xs btn-danger" id="copyToAllBtn">Copy to All Bars</button>
+                <div class="breeding-grid">
+                    <!-- Candidate 1 -->
+                    <div class="candidate-card" id="candidate-0">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #1</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(0)" id="loadBtn-0">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-0"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-0">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(0)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(0)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 2 -->
+                    <div class="candidate-card" id="candidate-1">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #2</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(1)" id="loadBtn-1">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-1"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-1">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(1)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(1)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 3 -->
+                    <div class="candidate-card" id="candidate-2">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #3</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(2)" id="loadBtn-2">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-2"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-2">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(2)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(2)">Save Active Here</button>
+                        </div>
+                    </div>
+
+                    <!-- Candidate 4 -->
+                    <div class="candidate-card" id="candidate-3">
+                        <div class="candidate-header">
+                            <span style="font-weight: 700; color: var(--accent-base);">Incubator #4</span>
+                            <span class="btn btn-xs" onclick="loadCandidate(3)" id="loadBtn-3">Load Active</span>
+                        </div>
+                        <div class="dna-strip" id="dna-3"></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="candDesc-3">Empty...</div>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-xs" onclick="mutateCandidate(3)">Mutate</button>
+                            <button class="btn btn-xs" onclick="cloneCurrentToCandidate(3)">Save Active Here</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="sequencer-grid-group">
-                    <!-- Riddim / Bass Trigger -->
-                    <div class="sequencer-row">
-                        <div class="row-label riddim-label">
-                            <span>🥁 Riddim / Bassline Trigger</span>
-                            <span>Bassline Beat Trigger</span>
+                <!-- Breeder Crossbreeding Station controls -->
+                <div class="sequencer-header-actions" style="margin-top: 10px;">
+                    <span class="sequencer-title">🔬 Crossbreed Station Controls</span>
+                    <div class="sequencer-quick-btns" style="flex-wrap: wrap; gap: 10px; width: 100%;">
+                        <div class="control-group" style="min-width: 130px; flex: 1;">
+                            <label>Parent A</label>
+                            <select id="parentA">
+                                <option value="0" selected>Incubator #1</option>
+                                <option value="1">Incubator #2</option>
+                                <option value="2">Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
                         </div>
-                        <div class="step-grid" id="riddimGrid"></div>
-                    </div>
-
-                    <!-- Arpeggio Trigger -->
-                    <div class="sequencer-row">
-                        <div class="row-label arp-label">
-                            <span>🌀 Arpeggiator Trigger</span>
-                            <span>Arpeggio Rhythm Rhythm</span>
+                        <div class="control-group" style="min-width: 130px; flex: 1;">
+                            <label>Parent B</label>
+                            <select id="parentB">
+                                <option value="0">Incubator #1</option>
+                                <option value="1" selected>Incubator #2</option>
+                                <option value="2">Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
                         </div>
-                        <div class="step-grid" id="arpGrid"></div>
+                        <div class="control-group" style="min-width: 180px; flex: 1;">
+                            <label>Crossover DNA Method</label>
+                            <select id="crossoverMethod">
+                                <option value="single" selected>Single-point Slice</option>
+                                <option value="double">Two-point Splice</option>
+                                <option value="uniform">Uniform Coin-flip Random</option>
+                                <option value="interleave">Interleaved Alternating Bars</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="min-width: 150px; flex: 1;">
+                            <label>Target Incubator</label>
+                            <select id="targetIncubator">
+                                <option value="0">Incubator #1</option>
+                                <option value="1">Incubator #2</option>
+                                <option value="2" selected>Incubator #3</option>
+                                <option value="3">Incubator #4</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="triggerBreedingLabBreed()" style="width: 100%;">Breed Parents into Target Incubator</button>
                     </div>
                 </div>
             </div>
@@ -824,11 +1320,129 @@
         return notesArray[midiVal % 12] + (Math.floor(midiVal / 12) - 1);
     }
 
+    // Enhanced Progression & Chords Logic
+    function getExtensionsForBase(baseMidi, tensionPercent, quality) {
+        // Support dynamic chord qualities with Berklee style Berklee voice theory
+        let intervals = [0, 4, 7, 11]; // default Major 7th
+
+        if (quality === 'm7') {
+            intervals = [0, 3, 7, 10]; // Minor 7th
+        } else if (quality === '7') {
+            intervals = [0, 4, 7, 10]; // Dominant 7th
+        } else if (quality === 'm7b5') {
+            intervals = [0, 3, 6, 10]; // Half-diminished
+        } else if (quality === 'maj7') {
+            intervals = [0, 4, 7, 11]; // Major 7th
+        } else if (quality === 'maj9') {
+            intervals = [0, 4, 7, 11, 14]; // Major 9th
+        }
+
+        // Add extensions dynamically according to tension Level
+        if (tensionPercent > 15) {
+            // Add 9th
+            let ninth = (quality === 'm7b5') ? 13 : 14;
+            if (!intervals.includes(ninth)) {
+                intervals.push(ninth);
+            }
+        }
+        if (tensionPercent > 45) {
+            // Add 11th / #11th
+            let eleventh = (quality === 'maj7' || quality === '7') ? 18 : 17; // #11 (18) for Major/Dominant, natural 11 (17) for Minor
+            if (!intervals.includes(eleventh)) {
+                intervals.push(eleventh);
+            }
+        }
+        if (tensionPercent > 75) {
+            // Add alterations for dominant chords, or high extensions for others
+            if (quality === '7') {
+                intervals.push(20); // b13
+                intervals.push(15); // b9
+            } else {
+                intervals.push(21); // high 13th / octave root duplication
+            }
+        }
+
+        return intervals.map(i => baseMidi + i);
+    }
+
+    // Parse custom or selected chord
+    function parseCustomChord(rootKeyId, chordTypeId, csvId) {
+        const csvVal = document.getElementById(csvId).value.trim();
+        if (csvVal) {
+            let parsed = csvVal.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            if (parsed.length > 0) {
+                return parsed.sort((a,b)=>a-b);
+            }
+        }
+
+        const root = parseInt(document.getElementById(rootKeyId).value);
+        const type = document.getElementById(chordTypeId).value;
+        let intervals = [0, 4, 7, 11]; // default maj7
+        if (type === 'm7') {
+            intervals = [0, 3, 7, 10];
+        } else if (type === '7') {
+            intervals = [0, 4, 7, 10];
+        } else if (type === 'm7b5') {
+            intervals = [0, 3, 6, 10];
+        } else if (type === 'dim7') {
+            intervals = [0, 3, 6, 9];
+        }
+        return intervals.map(i => root + i).sort((a,b)=>a-b);
+    }
+
+    // Smart Jazz Voice Leading function
+    function voiceLeadChord(targetChordNotes, referenceChordNotes) {
+        if (!referenceChordNotes || referenceChordNotes.length === 0) return [...targetChordNotes].sort((a,b)=>a-b);
+        let voiced = [...targetChordNotes].sort((a,b)=>a-b);
+        let ref = [...referenceChordNotes].sort((a,b)=>a-b);
+
+        for (let i = 0; i < voiced.length; i++) {
+            let target = voiced[i];
+
+            // Smart Neighbor Matching: Find the closest note in the reference chord to use as anchor
+            let anchor = ref[0];
+            let minAnchorDist = Math.abs(ref[0] - target);
+            for (let j = 1; j < ref.length; j++) {
+                let d = Math.abs(ref[j] - target);
+                if (d < minAnchorDist) {
+                    minAnchorDist = d;
+                    anchor = ref[j];
+                }
+            }
+
+            let pClass = target % 12;
+            let bestNote = target;
+            let minScore = 99999;
+            for (let oct = -36; oct <= 36; oct += 12) {
+                let candidate = (Math.floor(anchor / 12) * 12) + pClass + oct;
+
+                // Keep within reasonable voiced limits
+                if (candidate < 38 || candidate > 88) continue;
+
+                let distToAnchor = Math.abs(candidate - anchor);
+                let distToOriginal = Math.abs(candidate - target);
+                let score = distToAnchor + 0.4 * distToOriginal; // Balance smooth voice leading with center register force
+
+                if (score < minScore) {
+                    minScore = score;
+                    bestNote = candidate;
+                }
+            }
+            voiced[i] = bestNote;
+        }
+        return voiced.sort((a,b)=>a-b);
+    }
+
     // Interval list generator
     function generateJourney() {
         const root = parseInt(document.getElementById('rootKey').value);
+        const progStyle = document.getElementById('progStyle').value;
         const baseType = document.getElementById('baseChordType').value;
+        const tensionPercent = parseFloat(document.getElementById('tensionLevel').value);
         const bridgeType = document.getElementById('bridgeChordType').value;
+        const bridgeInterval = parseInt(document.getElementById('bridgeInterval').value);
+        const mutationRate = parseFloat(document.getElementById('mutationRate').value) / 100;
+        const useSecondaryDominants = document.getElementById('secondaryDominants').checked;
         const bridgeFreq = parseInt(document.getElementById('bridgeFreq').value);
         const bridgeDuration = parseInt(document.getElementById('bridgeDuration').value);
 
@@ -838,70 +1452,147 @@
             let explanation = "";
             let isBridge = false;
 
-            // Determine if this is a bridge bar based on bridgeFreq and bridgeDuration
-            // e.g. if frequency is 4 and duration is 2, bars 3 & 4 (indices 2 & 3) or 7 & 8 are bridges
+            // 1. Check if this is a bridge bar
             let cycle = b % bridgeFreq;
             if (cycle >= (bridgeFreq - bridgeDuration) && bridgeFreq > bridgeDuration) {
                 isBridge = true;
             } else if (bridgeFreq <= bridgeDuration) {
-                // Edge case: if duration matches or exceeds frequency, alternate evenly
                 isBridge = (b % 2 === 1);
             }
 
+            // 2. Generate Bridge Chords
             if (isBridge) {
-                // Tense Pentatonic Bridge Chord
-                let bridgeRoot = (root + 6) % 12 + 48; // Tritone away
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48; // Flexible interval offset
                 let pNotes = [];
 
                 if (bridgeType === 'hirajoshi') {
-                    // Hirajoshi: 1, 2, b3, 5, b6 (semitones: 0, 2, 3, 7, 8)
                     pNotes = [0, 2, 3, 7, 8];
                     name = `${notesArray[bridgeRoot % 12]} Hirajoshi Pentatonic`;
-                    explanation = `Tense Japanese Hirajoshi scale over root ${notesArray[bridgeRoot % 12]}. Delivers high modal mystery and beautiful dark tension bridging back to the base.`;
+                    explanation = `Tense Japanese Hirajoshi scale over root ${notesArray[bridgeRoot % 12]}. Delivers high modal mystery and beautiful dark tension.`;
                 } else if (bridgeType === 'altered') {
-                    // Altered Pentatonic: 1, 3, b5, b6, b7 (semitones: 0, 4, 6, 8, 10)
                     pNotes = [0, 4, 6, 8, 10];
                     name = `${notesArray[bridgeRoot % 12]} Altered Pentatonic`;
                     explanation = `Altered pentatonic scale loaded with active tritone and altered tension points (Root, 3rd, #11/b5, b13, b7) targeting resolution.`;
                 } else if (bridgeType === 'tritone') {
-                    // Tritone Shifted: standard minor pentatonic built exactly a tritone away
                     pNotes = [0, 3, 5, 7, 10];
                     name = `${notesArray[bridgeRoot % 12]} Tritone-Shifted Minor Pentatonic`;
-                    explanation = `Maximum jazz dissonance using minor pentatonic constructed exactly a tritone (${notesArray[bridgeRoot % 12]}) away from home root.`;
+                    explanation = `Maximum jazz dissonance using minor pentatonic constructed exactly a tritone away from home root.`;
                 } else if (bridgeType === 'insen') {
-                    // Insen: 1, b2, 4, 5, b7 (semitones: 0, 1, 5, 7, 10)
                     pNotes = [0, 1, 5, 7, 10];
                     name = `${notesArray[bridgeRoot % 12]} Insen Pentatonic`;
                     explanation = `Traditional Insen pentatonic scale. Uses flat 2nd and perfect 4th intervals to construct a suspension of classical jazz expectations.`;
                 }
 
-                chordNotes = pNotes.map(interval => bridgeRoot + interval);
+                // Add higher octave copies for thicker bridge spacing if tension is high
+                if (tensionPercent > 50) {
+                    let topNotes = pNotes.map(interval => bridgeRoot + interval + 12);
+                    chordNotes = pNotes.map(interval => bridgeRoot + interval).concat(topNotes);
+                } else {
+                    chordNotes = pNotes.map(interval => bridgeRoot + interval);
+                }
+
             } else {
-                // Consonant Jazz Base Chords (containing beautiful tritones or pure high jazz extensions)
-                if (baseType === 'maj7#11') {
-                    // Lydian Maj7#11: 1, 3, 5, 7, #11 (semitones: 0, 4, 7, 11, 18)
-                    let pNotes = [0, 4, 7, 11, 18];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}maj7(#11)`;
-                    explanation = `Consonant Lydian chord. The tritone between Root (${notesArray[root % 12]}) and #11 (${notesArray[(root + 6) % 12]}) sounds majestic when framed inside a major 7th.`;
-                } else if (baseType === '7#11') {
-                    // Dominant 7#11: 1, 3, 5, b7, 9, #11 (semitones: 0, 4, 7, 10, 14, 18)
-                    let pNotes = [0, 4, 7, 10, 14, 18];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}9(#11) Dominant`;
-                    explanation = `A complex dominant chord housing dual active tritones. Energetic, bluesy, and serves as an exceptional landing zone for tension.`;
-                } else if (baseType === 'm7b5') {
-                    // Half-diminished: 1, b3, b5, b7 (semitones: 0, 3, 6, 10)
-                    let pNotes = [0, 3, 6, 10, 14]; // added 9th
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}m7(b5) Half-Dim`;
-                    explanation = `Dark, minor-modal consonant chord. Tritone exists between Root and b5, creating a gorgeous classic bebop foundation.`;
-                } else if (baseType === 'maj9') {
-                    // Major 9: 1, 3, 5, 7, 9 (semitones: 0, 4, 7, 11, 14)
-                    let pNotes = [0, 4, 7, 11, 14];
-                    chordNotes = pNotes.map(i => root + i);
-                    name = `${notesArray[root % 12]}maj9`;
-                    explanation = `Smooth, highly consonant jazz chord providing a stable, pure home base.`;
+                // 3. Generate Consonant Base Progression Loop
+                let subBar = b % 8; // progression length loops
+                let currentRoot = root;
+                let scaleDegreeName = "I";
+                let quality = "maj7"; // default quality for tonic and major degrees
+
+                // Secondary Dominants injection (e.g., bar before target is forced to V/target)
+                let makeSecondaryDominant = false;
+                let targetRoot = root;
+
+                if (useSecondaryDominants && (subBar === 1 || subBar === 3 || subBar === 5 || subBar === 7)) {
+                    makeSecondaryDominant = true;
+                }
+
+                if (progStyle === 'jazz_standards') {
+                    // Classic Jazz Standard: I - vi - ii - V - iii - vi - ii - V
+                    let degrees = [0, 9, 2, 7, 4, 9, 2, 7];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "vi", "ii", "V", "iii", "vi", "ii", "V"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "m7", "m7", "7", "m7", "m7", "m7", "7"];
+                    quality = qualities[subBar];
+                } else if (progStyle === 'circle_fifths') {
+                    // Circle of Fifths: I - IV - vii - iii - vi - ii - V - I
+                    let degrees = [0, 5, 11, 4, 9, 2, 7, 0];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "IV", "viiø", "iii", "vi", "ii", "V", "I"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "m7b5", "m7", "m7", "m7", "7", "maj7"];
+                    quality = qualities[subBar];
+                } else if (progStyle === 'modal_interchange') {
+                    // Modal Interchange (Borrowing from minor): I - bVI - bVII - I - iv - bIII - bVI - bVII
+                    let degrees = [0, 8, 10, 0, 5, 3, 8, 10];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "bVI (Aeolian)", "bVII (Mixolydian)", "I", "iv (Minor iv)", "bIII (Relative Major)", "bVI", "bVII"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "7", "maj7", "m7", "maj7", "maj7", "7"];
+                    quality = qualities[subBar];
+                } else if (progStyle === 'coltrane_changes') {
+                    // Coltrane Changes (Giant Steps multi-tonic matrix shifting by Major 3rds)
+                    // I - bVI - bIV - bII - V - bVI - ii - V
+                    let degrees = [0, 8, 4, 1, 7, 8, 2, 7];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I (Tonic C)", "bVI (Tonic Ab)", "bIV (Tonic E)", "bII", "V", "bVI", "ii", "V"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "maj7", "maj7", "7", "maj7", "m7", "7"];
+                    quality = qualities[subBar];
+                } else if (progStyle === 'line_cliche') {
+                    // Line Cliché (Chromatic Walkdown in minor/major): I - I(maj7) - I(7) - I(6) - IV - iv - V - I
+                    let degrees = [0, 0, 0, 0, 5, 5, 7, 0];
+                    currentRoot = (root + degrees[subBar]) % 12;
+                    let labels = ["I", "I(maj7)", "I(7)", "I(6)", "IV", "iv", "V", "I"];
+                    scaleDegreeName = labels[subBar];
+                    targetRoot = (root + degrees[(subBar + 1) % 8]) % 12;
+
+                    let qualities = ["maj7", "maj7", "7", "maj7", "maj7", "m7", "7", "maj7"];
+                    quality = qualities[subBar];
+                }
+
+                // If making secondary dominant, override currentRoot to be perfect 5th of next bar's root target
+                if (makeSecondaryDominant) {
+                    currentRoot = (targetRoot + 7) % 12;
+                    scaleDegreeName = `V / ${notesArray[targetRoot]}`;
+                    quality = "7";
+                }
+
+                // Generative mutation probability (periodically swaps chord to tritone substitute or relative minor/major)
+                let mutated = false;
+                if (Math.random() < mutationRate && !makeSecondaryDominant) {
+                    // Tritone Substitution!
+                    currentRoot = (currentRoot + 6) % 12;
+                    scaleDegreeName = `SubV (Tritone Sub)`;
+                    mutated = true;
+                    quality = "7";
+                }
+
+                // Incorporate user baseChordType preferences specifically for Tonic/Major qualities
+                if (quality === 'maj7') {
+                    if (baseType === 'maj9') quality = 'maj9';
+                }
+
+                // 4. Voicing / Chord generation
+                let baseMidi = currentRoot + 48;
+                chordNotes = getExtensionsForBase(baseMidi, tensionPercent, quality);
+
+                // Build name and descriptor details
+                let labelPrefix = mutated ? "[Mutated] " : "";
+                if (makeSecondaryDominant) {
+                    name = `${labelPrefix}${notesArray[currentRoot]}7 (Secondary Dominant)`;
+                    explanation = `Secondary dominant V chord built over ${notesArray[currentRoot]} to pull aggressively toward the upcoming ${notesArray[targetRoot]} chord in the jazz cycle.`;
+                } else {
+                    name = `${labelPrefix}${notesArray[currentRoot]} ${quality.toUpperCase()} (${scaleDegreeName})`;
+                    explanation = `Algorithmically generated ${scaleDegreeName} base chord using the ${progStyle.toUpperCase()} matrix. Voiced with ${chordNotes.length} notes according to the tension level (${tensionPercent.toFixed(0)}%).`;
                 }
             }
 
@@ -913,7 +1604,74 @@
             };
         }
 
-        renderBarGrid();
+        // 5. Output Chord Preparation (Resolve/Prepare for Output)
+        const prepareOutput = document.getElementById('prepareOutput').checked;
+        const resolutionMode = document.getElementById('resolutionMode').value;
+        const outputRoot = parseInt(document.getElementById('outputChordRoot').value);
+        const outputType = document.getElementById('outputChordType').value;
+
+        // Get actual output chord notes
+        let outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
+
+        if (prepareOutput) {
+            let outputRootNote = outputNotes[0] % 12; // Base root of output chord
+
+            if (resolutionMode === 'dominant') {
+                // Secondary Dominant of Output: V7 of output root
+                let vRoot = (outputRootNote + 7) % 12 + 48;
+                let notes = [vRoot, vRoot + 4, vRoot + 7, vRoot + 10].sort((a,b)=>a-b);
+                progression[TOTAL_BARS - 1] = {
+                    notes: notes,
+                    name: `${notesArray[vRoot % 12]}7 (V7 of Output)`,
+                    isBridge: true,
+                    explanation: `Secondary dominant V7 chord prepared dynamically to resolve into the external Output Chord (${notesArray[outputRootNote]} ${outputType.toUpperCase()}).`
+                };
+            } else if (resolutionMode === 'tritone') {
+                // Tritone Substitute of Output: SubV7 of output root
+                let subVRoot = (outputRootNote + 1) % 12 + 48;
+                let notes = [subVRoot, subVRoot + 4, subVRoot + 7, subVRoot + 10].sort((a,b)=>a-b);
+                progression[TOTAL_BARS - 1] = {
+                    notes: notes,
+                    name: `${notesArray[subVRoot % 12]}7 (SubV7 of Output)`,
+                    isBridge: true,
+                    explanation: `Tritone substitute SubV7 chord prepared dynamically to resolve cleanly into the external Output Chord (${notesArray[outputRootNote]} ${outputType.toUpperCase()}) via chromatic descent.`
+                };
+            } else if (resolutionMode === 'ii_V') {
+                // ii - V Preparation of Output: ii of output root in Bar 63, V7 in Bar 64
+                let iiRoot = (outputRootNote + 2) % 12 + 48;
+                let vRoot = (outputRootNote + 7) % 12 + 48;
+
+                let iiNotes = [iiRoot, iiRoot + 3, iiRoot + 7, iiRoot + 10].sort((a,b)=>a-b);
+                let vNotes = [vRoot, vRoot + 4, vRoot + 7, vRoot + 10].sort((a,b)=>a-b);
+
+                progression[TOTAL_BARS - 2] = {
+                    notes: iiNotes,
+                    name: `${notesArray[iiRoot % 12]}m7 (ii of Output)`,
+                    isBridge: true,
+                    explanation: `ii minor seventh chord preparing a classic ii-V turnaround cadence targeting the external Output Chord.`
+                };
+
+                progression[TOTAL_BARS - 1] = {
+                    notes: vNotes,
+                    name: `${notesArray[vRoot % 12]}7 (V7 of Output)`,
+                    isBridge: true,
+                    explanation: `V7 dominant seventh chord completing the ii-V turnaround cadence targeting the external Output Chord.`
+                };
+            }
+        }
+
+        // 6. Voice-leading pass
+        const voiceLeadInput = document.getElementById('voiceLeadInput').checked;
+        let inputNotes = parseCustomChord('inputChordRoot', 'inputChordType', 'inputChordCSV');
+
+        let referenceNotes = voiceLeadInput ? inputNotes : null;
+
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            progression[b].notes = voiceLeadChord(progression[b].notes, referenceNotes);
+            referenceNotes = progression[b].notes; // cascade forward
+        }
+
+        renderMasterSequencer();
         updateTheoryPanel(editingBar);
     }
 
@@ -1002,6 +1760,12 @@
     let exciterGain = null;
     let highExciterFilter = null;
     let analyserNode = null;
+    let arpDelayNode = null;
+    let arpDelayFeedback = null;
+    let arpDelayHPF = null;
+    let arpDelayLPF = null;
+    let dcBlocker = null;
+    let masterCompressor = null;
     let scheduledNextNoteTime = 0.0;
     let schedulerTimerId = null;
     let lookaheadTimeMs = 25.0;
@@ -1013,6 +1777,11 @@
     // Triggered synth nodes tracking to stop them on Panic button click
     let activeSynthNodes = [];
 
+    // Note history tracking for time-domain interdependency and melodic resolution
+    let lastBassMidiPlayed = null;
+    let lastArpMidiPlayed = null;
+    let lastBassMotionDir = 0; // -1 = down, 1 = up, 0 = stable/none
+
     function initAudioContext() {
         if (audioCtx) return;
 
@@ -1022,12 +1791,25 @@
         masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(parseFloat(document.getElementById('masterVol').value) / 100, audioCtx.currentTime);
 
+        // --- Production-Grade Master Dynamics Compressor Node ---
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.setValueAtTime(-14, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(3.5, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.015, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+
         // --- Psychoacoustic Processing Chain ---
 
         // 1. Distortion Waveshaper (Saturation)
         saturationNode = audioCtx.createWaveShaper();
         saturationNode.oversample = '4x';
         updateSaturationCurve();
+
+        // 1b. DC Blocker Filter (Highpass 20Hz)
+        dcBlocker = audioCtx.createBiquadFilter();
+        dcBlocker.type = 'highpass';
+        dcBlocker.frequency.setValueAtTime(20, audioCtx.currentTime);
 
         // 2. Channel Splitter & Merger for Haas Stereo Widening
         const channelSplitter = audioCtx.createChannelSplitter(2);
@@ -1060,47 +1842,75 @@
         analyserNode.fftSize = 256;
 
         // Routing Network:
-        // Input -> Saturation -> Splitter
+        // Sources -> Saturation -> DC Blocker -> Splitter
         // Splitter L -> Delay L -> Merger L
         // Splitter R -> Delay R -> Merger R
-        // Merger -> High Exciter & Sub-Bass Enhancer (in parallel)
-        // Merger & Exciter & Sub-Bass -> Master Gain -> Analyser -> Destination
+        // Merger -> parallel High Exciter, Sub Bass, and Direct path -> Master Compressor -> Master Gain -> Analyser -> Destination
 
         masterGain.connect(analyserNode);
         analyserNode.connect(audioCtx.destination);
 
-        // Stereo widener routing
-        saturationNode.connect(channelSplitter);
+        // Link Compressor to Master Gain
+        masterCompressor.connect(masterGain);
+
+        // Stereo widener routing from Saturation through DC blocker
+        saturationNode.connect(dcBlocker);
+        dcBlocker.connect(channelSplitter);
+
         channelSplitter.connect(delayLeft, 0);
         channelSplitter.connect(delayRight, 1);
 
         delayLeft.connect(channelMerger, 0, 0);
         delayRight.connect(channelMerger, 0, 1);
 
-        // Parallel Exciter chain
+        // Parallel Exciter chain -> Master Compressor
         channelMerger.connect(highExciterFilter);
         highExciterFilter.connect(exciterGain);
-        exciterGain.connect(masterGain);
+        exciterGain.connect(masterCompressor);
 
-        // Parallel Sub bass chain
+        // Parallel Sub bass chain -> Master Compressor
         channelMerger.connect(subBassFilter);
         subBassFilter.connect(subEnhancerGain);
-        subEnhancerGain.connect(masterGain);
+        subEnhancerGain.connect(masterCompressor);
 
-        // Direct merge path to master
-        channelMerger.connect(masterGain);
+        // Direct merge path -> Master Compressor
+        channelMerger.connect(masterCompressor);
+
+        // Permanent Global Arp Delay Feedback Loop with Highpass/Lowpass filtering
+        arpDelayNode = audioCtx.createDelay();
+        arpDelayFeedback = audioCtx.createGain();
+        arpDelayHPF = audioCtx.createBiquadFilter();
+        arpDelayLPF = audioCtx.createBiquadFilter();
+
+        arpDelayNode.delayTime.setValueAtTime(0.18, audioCtx.currentTime); // 16th note echo
+        arpDelayFeedback.gain.setValueAtTime(0.25, audioCtx.currentTime); // Echo volume/decay feedback
+
+        arpDelayHPF.type = 'highpass';
+        arpDelayHPF.frequency.setValueAtTime(120, audioCtx.currentTime); // Block muddy lows from feeding back
+
+        arpDelayLPF.type = 'lowpass';
+        arpDelayLPF.frequency.setValueAtTime(5000, audioCtx.currentTime); // Warm analog roll-off of highs
+
+        // Loop routing: Delay -> LPF -> HPF -> Gain -> Delay
+        arpDelayNode.connect(arpDelayLPF);
+        arpDelayLPF.connect(arpDelayHPF);
+        arpDelayHPF.connect(arpDelayFeedback);
+        arpDelayFeedback.connect(arpDelayNode);
+
+        // Connect the delayed reflections to the main saturation/DSP chain (parallel delayed send)
+        arpDelayFeedback.connect(saturationNode);
 
         // Kickoff canvas visualizer loop
         drawVisualizer();
     }
 
-    // Function to calculate customized saturation curve
+    // Function to calculate customized saturation curve (optimized to 4096 samples)
     function updateSaturationCurve() {
         if (!saturationNode) return;
         let amount = parseFloat(document.getElementById('psychoSat').value);
         let k = typeof amount === 'number' ? amount : 50;
         k = k * 1.5; // Scale up for beautiful harmonic clipping
-        let n_samples = 44100;
+        let n_samples = 4096;
         let curve = new Float32Array(n_samples);
         let deg = Math.PI / 180;
         for (let i = 0; i < n_samples; ++i) {
@@ -1118,12 +1928,105 @@
 
     // --- Synthesizers ---
 
-    // Plucky Funky Jazz Bass
-    function triggerBassSynth(time, baseMidiNote, tuningSystem, driftCents) {
+    // Plucky Funky Jazz Bass with Time-Domain Melodic Optimizer
+    function triggerBassSynth(time, chordNotesOrNote, stepInBar = 0, tuningSystem = "12tet", driftCents = 0) {
         if (!audioCtx) return;
 
-        // Drop 2 octaves for deep funky bass
-        let bassMidi = baseMidiNote - 24;
+        // Ensure chordNotes is a clean array of MIDI notes
+        let chordNotes = Array.isArray(chordNotesOrNote) ? chordNotesOrNote : [chordNotesOrNote];
+        if (chordNotes.length === 0) return;
+
+        let rootMidi = chordNotes[0];
+
+        // Generate candidates for the bass note on this step
+        let candidates = [rootMidi];
+
+        if (chordNotes.length > 1) candidates.push(chordNotes[1]);
+        if (chordNotes.length > 2) candidates.push(chordNotes[2]);
+        if (chordNotes.length > 3) candidates.push(chordNotes[3]);
+
+        if (lastBassMidiPlayed !== null) {
+            candidates.push(lastBassMidiPlayed + 1);
+            candidates.push(lastBassMidiPlayed - 1);
+            candidates.push(lastBassMidiPlayed + 2);
+            candidates.push(lastBassMidiPlayed - 2);
+        }
+
+        // Standardize all candidates into the punchy bass octave range [24, 48]
+        let mappedCandidates = candidates.map(midi => {
+            let m = midi;
+            while (m < 24) m += 12;
+            while (m > 48) m -= 12;
+            return m;
+        });
+
+        // Filter out duplicates
+        mappedCandidates = Array.from(new Set(mappedCandidates));
+
+        let bestBassMidi = mappedCandidates[0];
+        let lowestCost = Infinity;
+
+        for (let cand of mappedCandidates) {
+            let cost = 0;
+
+            // 1. History Distance Cost
+            if (lastBassMidiPlayed !== null) {
+                let dist = Math.abs(cand - lastBassMidiPlayed);
+                if (dist === 0) {
+                    cost += 3.0; // avoid repeating the exact same bass note consecutively if possible
+                } else if (dist === 1 || dist === 2) {
+                    cost += 0.5; // highly preferred step-wise walking motion
+                } else if (dist === 5 || dist === 7 || dist === 12) {
+                    cost += 1.0; // nice perfect intervals
+                } else {
+                    cost += dist * 1.5; // penalize large awkward leaps
+                }
+            }
+
+            // 2. Chord / Beat Anchoring Cost
+            let isChordTone = chordNotes.some(cn => (cn % 12) === (cand % 12));
+            if (stepInBar === 0) {
+                if (cand % 12 === rootMidi % 12) {
+                    cost += 0.0; // Perfect root anchor
+                } else if (isChordTone) {
+                    cost += 1.5; // Good chord tone
+                } else {
+                    cost += 12.0; // Heavily penalize non-chord chromatic approach on beat 1
+                }
+            } else {
+                if (!isChordTone) {
+                    cost += 2.0; // chromatic passing notes are fine, but chord tones are slightly preferred
+                }
+            }
+
+            // 3. Interdependency (Arp Clash) Cost
+            if (lastArpMidiPlayed !== null) {
+                let arpPC = lastArpMidiPlayed % 12;
+                let candPC = cand % 12;
+                let diffPC = Math.abs(candPC - arpPC);
+
+                if (diffPC === 0) {
+                    cost += 6.0; // Avoid doubling the exact pitch class with the arpeggiator simultaneously
+                } else if (diffPC === 1 || diffPC === 11) {
+                    cost += 8.0; // Avoid harsh minor-second interval clash with the arpeggiator
+                }
+            }
+
+            if (cost < lowestCost) {
+                lowestCost = cost;
+                bestBassMidi = cand;
+            }
+        }
+
+        // Track motion direction
+        if (lastBassMidiPlayed !== null) {
+            if (bestBassMidi > lastBassMidiPlayed) lastBassMotionDir = 1;
+            else if (bestBassMidi < lastBassMidiPlayed) lastBassMotionDir = -1;
+            else lastBassMotionDir = 0;
+        }
+        lastBassMidiPlayed = bestBassMidi;
+
+        let bassMidi = bestBassMidi;
         let frequency = midiToFrequency(bassMidi, tuningSystem, driftCents);
 
         const osc1 = audioCtx.createOscillator();
@@ -1144,10 +2047,23 @@
         filterNode.frequency.setValueAtTime(1500, time);
         filterNode.frequency.exponentialRampToValueAtTime(70, time + 0.3);
 
-        // Gain Amplitude Envelope to prevent click
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.7, time + 0.015);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.38);
+        // ADSR Envelope
+        let bVol = parseFloat(document.getElementById('bassVol').value) / 100;
+        let bAttack = parseFloat(document.getElementById('bassAttack').value) / 1000;
+        let bDecay = parseFloat(document.getElementById('bassDecay').value) / 1000;
+        let bSustain = parseFloat(document.getElementById('bassSustain').value) / 100;
+        let bRelease = parseFloat(document.getElementById('bassRelease').value) / 1000;
+
+        let totalDuration = 0.35; // bass step length
+
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(bVol, time + bAttack);
+        gainNode.gain.exponentialRampToValueAtTime(bVol * bSustain + 0.001, time + bAttack + bDecay);
+
+        // Schedule Release
+        let stopTime = time + totalDuration;
+        gainNode.gain.setValueAtTime(bVol * bSustain + 0.001, stopTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, stopTime + bRelease);
 
         // Connections
         osc1.connect(filterNode);
@@ -1158,8 +2074,25 @@
         // Start & Stop
         osc1.start(time);
         osc2.start(time);
-        osc1.stop(time + 0.4);
-        osc2.stop(time + 0.4);
+        osc1.stop(stopTime + bRelease + 0.05);
+        osc2.stop(stopTime + bRelease + 0.05);
+
+        // Cleanup on note complete (Prevent resource accumulation and GC pressure)
+        osc1.onended = () => {
+            try {
+                osc1.disconnect();
+                osc2.disconnect();
+                filterNode.disconnect();
+                gainNode.disconnect();
+            } catch (e) {
+                // handle any accidental double-disconnect gracefully
+            }
+            // Remove from active tracking
+            let idx1 = activeSynthNodes.indexOf(osc1);
+            if (idx1 !== -1) activeSynthNodes.splice(idx1, 1);
+            let idx2 = activeSynthNodes.indexOf(osc2);
+            if (idx2 !== -1) activeSynthNodes.splice(idx2, 1);
+        };
 
         // Store active nodes
         activeSynthNodes.push(osc1, osc2);
@@ -1174,14 +2107,13 @@
         let filterDepth = parseFloat(document.getElementById('arpFilterDepth').value) / 100;
         let decayMs = parseFloat(document.getElementById('arpFilterDecay').value);
 
-        // 1. Select note based on pattern algorithm
+        // 1. Select initial target note based on pattern algorithm
         let noteIndex = 0;
         let selectedMidi = chordNotes[0];
 
         if (patternType === 'up') {
             noteIndex = arpNoteWalkCount % chordNotes.length;
             selectedMidi = chordNotes[noteIndex];
-            // Upwards Octave shifting
             let octShift = Math.floor(arpNoteWalkCount / chordNotes.length) % octaveRange;
             selectedMidi += octShift * 12;
         } else if (patternType === 'down') {
@@ -1203,23 +2135,97 @@
             selectedMidi = chordNotes[Math.floor(Math.random() * chordNotes.length)];
             selectedMidi += Math.floor(Math.random() * octaveRange) * 12;
         } else if (patternType === 'thumb') {
-            // Alternates between Root (thumb note) and other chord notes
             if (stepInBar % 2 === 0) {
-                selectedMidi = chordNotes[0]; // Root
+                selectedMidi = chordNotes[0];
             } else {
                 noteIndex = 1 + (Math.floor(arpNoteWalkCount / 2) % (chordNotes.length - 1 || 1));
-                selectedMidi = chordNotes[noteIndex] + 12; // High octave answer
+                selectedMidi = chordNotes[noteIndex] + 12;
             }
         } else if (patternType === 'complex') {
-            // Complex syncopated walk with shifting indices
             let offset = [0, 7, 3, 12, 5, 10, 14, 2][stepInBar % 8];
             noteIndex = (arpNoteWalkCount + offset) % chordNotes.length;
             selectedMidi = chordNotes[noteIndex];
             if (stepInBar % 3 === 0) selectedMidi += 12;
         }
 
-        // Arp Pluck is voiced higher
+        // Arp Pluck default transposition offset
         selectedMidi += 12;
+
+        // 2. TIME-DOMAIN INTERDEPENDENCY & HISTORY MELODIC OPTIMIZER
+        // Generate potential alternative candidates across chord notes and octave variations
+        let arpCandidates = [selectedMidi];
+
+        for (let cn of chordNotes) {
+            let baseN = cn + 12; // Arp starts higher
+            for (let oct = 0; oct < octaveRange; oct++) {
+                arpCandidates.push(baseN + oct * 12);
+            }
+        }
+
+        // Standardize candidates to a reasonable arpeggio frequency zone [48, 88]
+        let mappedArpCandidates = arpCandidates.map(midi => {
+            let m = midi;
+            while (m < 48) m += 12;
+            while (m > 88) m -= 12;
+            return m;
+        });
+
+        // Unique candidates
+        mappedArpCandidates = Array.from(new Set(mappedArpCandidates));
+
+        let bestArpMidi = selectedMidi;
+        let lowestArpCost = Infinity;
+
+        for (let cand of mappedArpCandidates) {
+            let cost = 0;
+
+            // Pattern Alignment (stay close to the original structural pattern target note)
+            let distFromTarget = Math.abs(cand - selectedMidi);
+            cost += distFromTarget * 1.0;
+
+            // Melodic History Motion
+            if (lastArpMidiPlayed !== null) {
+                let distFromPrev = Math.abs(cand - lastArpMidiPlayed);
+                if (distFromPrev === 0) {
+                    cost += 2.0; // avoid stagnant note repetitions if possible
+                } else if (distFromPrev <= 5) {
+                    cost += 0.0; // reward elegant step-wise intervals
+                } else if (distFromPrev <= 12) {
+                    cost += 1.0; // acceptable chordal leaps
+                } else {
+                    cost += distFromPrev * 2.5; // penalize extreme leaps
+                }
+
+                // Counterpoint Motion Interdependency with Bass
+                if (lastBassMotionDir !== 0) {
+                    let arpMotionDir = (cand > lastArpMidiPlayed) ? 1 : (cand < lastArpMidiPlayed ? -1 : 0);
+                    if (arpMotionDir !== 0 && arpMotionDir === -lastBassMotionDir) {
+                        cost -= 3.5; // Highly reward beautiful contrary voice movement
+                    }
+                }
+            }
+
+            // Pitch-class Clash Interdependency with Bass
+            if (lastBassMidiPlayed !== null) {
+                let bassPC = lastBassMidiPlayed % 12;
+                let candPC = cand % 12;
+                let diffPC = Math.abs(candPC - bassPC);
+
+                if (diffPC === 0) {
+                    cost += 10.0; // Avoid unison/octave doubling
+                } else if (diffPC === 1 || diffPC === 11) {
+                    cost += 12.0; // Avoid harsh close dissonant clash with active bass line
+                }
+            }
+
+            if (cost < lowestArpCost) {
+                lowestArpCost = cost;
+                bestArpMidi = cand;
+            }
+        }
+
+        lastArpMidiPlayed = bestArpMidi;
+        selectedMidi = bestArpMidi;
 
         let frequency = midiToFrequency(selectedMidi, tuningSystem, driftCents);
 
@@ -1246,16 +2252,23 @@
         filterNode.frequency.exponentialRampToValueAtTime(peakCutoff, time + 0.02);
         filterNode.frequency.exponentialRampToValueAtTime(startCutoff, time + (decayMs / 1000));
 
-        // Pluck volume envelope
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.35, time + 0.008);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.18);
+        // ADSR Envelope
+        let aVol = parseFloat(document.getElementById('arpVol').value) / 100;
+        let aAttack = parseFloat(document.getElementById('arpAttack').value) / 1000;
+        let aDecay = parseFloat(document.getElementById('arpDecay').value) / 1000;
+        let aSustain = parseFloat(document.getElementById('arpSustain').value) / 100;
+        let aRelease = parseFloat(document.getElementById('arpRelease').value) / 1000;
 
-        // Delay Echo Feedback Loop specifically for lush arpeggio
-        const delayNode = audioCtx.createDelay();
-        const delayFeedback = audioCtx.createGain();
-        delayNode.delayTime.setValueAtTime(0.18, time); // 16th note echo
-        delayFeedback.gain.setValueAtTime(0.25, time); // Echo volume
+        let arpDuration = 0.18; // arp step length
+
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(aVol, time + aAttack);
+        gainNode.gain.exponentialRampToValueAtTime(aVol * aSustain + 0.001, time + aAttack + aDecay);
+
+        // Schedule Release
+        let arpStopTime = time + arpDuration;
+        gainNode.gain.setValueAtTime(aVol * aSustain + 0.001, arpStopTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, arpStopTime + aRelease);
 
         osc.connect(filterNode);
         subOsc.connect(filterNode);
@@ -1264,17 +2277,40 @@
         // Connect pluck to Haas/Sat module
         gainNode.connect(saturationNode);
 
-        // Connect Pluck to delay loop
-        gainNode.connect(delayNode);
-        delayNode.connect(delayFeedback);
-        delayFeedback.connect(delayNode); // feedback
-        delayFeedback.connect(saturationNode); // feedback output into master chain
+        // Connect Pluck to global permanent delay loop via explicit 20% send level (Avoids unity delay overload)
+        let arpSendGain = null;
+        if (arpDelayNode) {
+            arpSendGain = audioCtx.createGain();
+            arpSendGain.gain.setValueAtTime(0.20, time); // Professional send mix
+            gainNode.connect(arpSendGain);
+            arpSendGain.connect(arpDelayNode);
+        }
 
         // Start & Stop
         osc.start(time);
         subOsc.start(time);
-        osc.stop(time + 0.25);
-        subOsc.stop(time + 0.25);
+        osc.stop(arpStopTime + aRelease + 0.05);
+        subOsc.stop(arpStopTime + aRelease + 0.05);
+
+        // Cleanup on note complete (Prevent resource accumulation and GC pressure)
+        osc.onended = () => {
+            try {
+                osc.disconnect();
+                subOsc.disconnect();
+                filterNode.disconnect();
+                gainNode.disconnect();
+                if (arpSendGain) {
+                    arpSendGain.disconnect();
+                }
+            } catch (e) {
+                // handle any accidental double-disconnect gracefully
+            }
+            // Remove from active tracking
+            let idx1 = activeSynthNodes.indexOf(osc);
+            if (idx1 !== -1) activeSynthNodes.splice(idx1, 1);
+            let idx2 = activeSynthNodes.indexOf(subOsc);
+            if (idx2 !== -1) activeSynthNodes.splice(idx2, 1);
+        };
 
         // Store active nodes
         activeSynthNodes.push(osc, subOsc);
@@ -1282,7 +2318,67 @@
         arpNoteWalkCount++;
     }
 
-    // --- 5. SEQUENCER CORE SCHEDULER ---
+    // --- 5. SEQUENCER CORE SCHEDULER & PLAYHEAD ENGINE ---
+
+    let lastPlayingBar = -1;
+    let lastPlayingStep = -1;
+
+    function updatePlayheadUI(bar, stepInBar, chordData) {
+        // Update general status displays
+        document.getElementById('playingBarDisplay').innerText = `Bar ${bar + 1} / 64`;
+        document.getElementById('playingChordDisplay').innerText = chordData ? chordData.name : "";
+        if (chordData) {
+            document.getElementById('tensionTypeDisplay').innerText = chordData.isBridge ? "Tense Bridge" : "Consonant Base";
+            document.getElementById('tensionTypeDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+            document.getElementById('chordNameDisplay').innerText = chordData.name;
+            document.getElementById('chordNameDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+        }
+
+        // 1. Remove active-card and current-playhead classes from last played step/bar
+        if (lastPlayingBar !== -1) {
+            const lastCard = document.getElementById(`bar-card-${lastPlayingBar}`);
+            if (lastCard) lastCard.classList.remove('active-card');
+
+            const lastRCell = document.getElementById(`riddim-cell-${lastPlayingBar}-${lastPlayingStep}`);
+            if (lastRCell) lastRCell.classList.remove('current-playhead');
+
+            const lastACell = document.getElementById(`arp-cell-${lastPlayingBar}-${lastPlayingStep}`);
+            if (lastACell) lastACell.classList.remove('current-playhead');
+        }
+
+        // 2. Add active-card and current-playhead to the currently playing step/bar
+        const currentCard = document.getElementById(`bar-card-${bar}`);
+        if (currentCard) {
+            currentCard.classList.add('active-card');
+
+            // Auto-scroll current card smoothly *only* inside its parent container (no window/viewport jump)
+            const autoScrollCheckbox = document.getElementById('autoScrollActive');
+            if (autoScrollCheckbox && autoScrollCheckbox.checked && bar !== lastPlayingBar) {
+                const container = document.getElementById('masterSequencerGrid');
+                if (container) {
+                    const cardTop = currentCard.offsetTop;
+                    const containerHeight = container.clientHeight;
+                    const cardHeight = currentCard.offsetHeight;
+
+                    // Center the active card in the scroll viewport smoothly
+                    container.scrollTo({
+                        top: cardTop - (containerHeight / 2) + (cardHeight / 2),
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        }
+
+        const currentRCell = document.getElementById(`riddim-cell-${bar}-${stepInBar}`);
+        if (currentRCell) currentRCell.classList.add('current-playhead');
+
+        const currentACell = document.getElementById(`arp-cell-${bar}-${stepInBar}`);
+        if (currentACell) currentACell.classList.add('current-playhead');
+
+        // Update tracking variables
+        lastPlayingBar = bar;
+        lastPlayingStep = stepInBar;
+    }
 
     function handleNextStep() {
         const bpm = parseFloat(document.getElementById('bpm').value);
@@ -1295,18 +2391,59 @@
         playingStep++;
         globalStepIndex++;
 
+        // Get loop boundaries
+        const loopStartSelect = document.getElementById('loopStart');
+        const loopEndSelect = document.getElementById('loopEnd');
+        let loopStartIdx = loopStartSelect ? parseInt(loopStartSelect.value) - 1 : 0;
+        let loopEndIdx = loopEndSelect ? parseInt(loopEndSelect.value) - 1 : TOTAL_BARS - 1;
+
         if (playingStep >= STEPS_PER_BAR) {
             playingStep = 0;
             playingBar++;
-            if (playingBar >= TOTAL_BARS) {
-                playingBar = 0;
-                globalStepIndex = 0;
+
+            // Apply Loop Range constraint or play final turnaround output chord and stop
+            if (playingBar > loopEndIdx || playingBar >= TOTAL_BARS) {
+                const onEndBehavior = document.getElementById('onSequencerEnd').value;
+                if (onEndBehavior === 'play_output' && loopEndIdx === TOTAL_BARS - 1) {
+                    // Play final Output Chord
+                    let outputNotes = parseCustomChord('outputChordRoot', 'outputChordType', 'outputChordCSV');
+                    const tuningSystem = document.getElementById('tuningSys').value;
+                    const driftCents = parseFloat(document.getElementById('microDrift').value);
+
+                    // Voice-lead Output Chord against the last bar of the generated progression
+                    const lastBarProg = progression[TOTAL_BARS - 1];
+                    if (lastBarProg && lastBarProg.notes && lastBarProg.notes.length > 0) {
+                        outputNotes = voiceLeadChord(outputNotes, lastBarProg.notes);
+                    }
+
+                    // Trigger bass & chord beautifully
+                    triggerBassSynth(scheduledNextNoteTime, outputNotes, 0, tuningSystem, driftCents);
+                    for (let n of outputNotes) {
+                        triggerArpSynth(scheduledNextNoteTime, [n], 0, tuningSystem, driftCents);
+                    }
+
+                    // Disable scheduler loop
+                    clearTimeout(schedulerTimerId);
+                    isPlaying = false;
+
+                    const playBtn = document.getElementById('playBtn');
+                    playBtn.innerText = "Start Engine";
+                    playBtn.classList.remove('btn-danger');
+                    playBtn.classList.add('btn-primary');
+
+                    document.getElementById('playingBarDisplay').innerText = `Finished!`;
+                    document.getElementById('playingChordDisplay').innerText = `Output Chord Played`;
+                    return;
+                } else {
+                    playingBar = loopStartIdx;
+                }
             }
+            globalStepIndex = playingBar * STEPS_PER_BAR;
         }
     }
 
     function scheduleSequenceNote(stepIndex, time) {
-        let bar = Math.floor(stepIndex / STEPS_PER_BAR);
+        let bar = Math.floor(stepIndex / STEPS_PER_BAR) % TOTAL_BARS;
         let stepInBar = stepIndex % STEPS_PER_BAR;
         let chordData = progression[bar];
 
@@ -1314,40 +2451,7 @@
 
         // UI Updates synchronized to Web Audio time using requestAnimationFrame
         requestAnimationFrame(() => {
-            // Update live playing bar highlights
-            document.getElementById('playingBarDisplay').innerText = `Bar ${bar + 1} / 64`;
-            document.getElementById('playingChordDisplay').innerText = chordData.name;
-            document.getElementById('tensionTypeDisplay').innerText = chordData.isBridge ? "Tense Bridge" : "Consonant Base";
-            document.getElementById('tensionTypeDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
-
-            // Update 64-bar overview grids to show playing location
-            const overviewGrid = document.getElementById('barOverviewGrid');
-            Array.from(overviewGrid.children).forEach((cell, idx) => {
-                if (idx === bar) {
-                    cell.classList.add('playing');
-                } else {
-                    cell.classList.remove('playing');
-                }
-            });
-
-            // Update 16 step sequencer visual position indicator
-            if (bar === editingBar) {
-                const riddimPads = document.getElementById('riddimGrid').children;
-                const arpPads = document.getElementById('arpGrid').children;
-                for (let s = 0; s < STEPS_PER_BAR; s++) {
-                    if (s === stepInBar) {
-                        riddimPads[s].classList.add('current-playing-step');
-                        arpPads[s].classList.add('current-playing-step');
-                    } else {
-                        riddimPads[s].classList.remove('current-playing-step');
-                        arpPads[s].classList.remove('current-playing-step');
-                    }
-                }
-            }
-
-            // Update text/theory explanation in sidebar
-            document.getElementById('chordNameDisplay').innerText = chordData.name;
-            document.getElementById('chordNameDisplay').style.color = chordData.isBridge ? "var(--accent-bridge)" : "var(--accent-base)";
+            updatePlayheadUI(bar, stepInBar, chordData);
         });
 
         // Pull dynamic tuning parameters
@@ -1356,7 +2460,7 @@
 
         // Sound triggers
         if (sequencerData.riddim[bar][stepInBar]) {
-            triggerBassSynth(time, chordData.notes[0], tuningSystem, driftCents);
+            triggerBassSynth(time, chordData.notes, stepInBar, tuningSystem, driftCents);
         }
 
         if (sequencerData.arp[bar][stepInBar]) {
@@ -1373,6 +2477,7 @@
         while (scheduledNextNoteTime < audioCtx.currentTime + scheduleAheadTimeSec) {
             scheduleSequenceNote(globalStepIndex, scheduledNextNoteTime);
             handleNextStep();
+            if (!isPlaying) return; // Exit loop immediately if stopped/resolved
         }
         schedulerTimerId = setTimeout(runScheduler, lookaheadTimeMs);
     }
@@ -1389,96 +2494,154 @@
 
     // --- 6. USER INTERFACE RENDERING & CONTROLLER ---
 
-    // Draw the 64-bar overview grid
-    function renderBarGrid() {
-        const grid = document.getElementById('barOverviewGrid');
-        grid.innerHTML = '';
+    // Draw the 64-Bar Master Stack Sequencer (Dual Channel)
+    function renderMasterSequencer() {
+        const container = document.getElementById('masterSequencerGrid');
+        if (!container) return;
+        container.innerHTML = '';
 
-        for (let b = 0; b < TOTAL_BARS; b++) {
-            const chord = progression[b];
-            const cell = document.createElement('div');
-            cell.className = 'bar-cell';
-            if (chord) {
-                cell.classList.add(chord.isBridge ? 'is-bridge' : 'is-base');
-            }
-            if (b === editingBar) {
-                cell.classList.add('active-edit');
-            }
+        for (let rowIdx = 0; rowIdx < 32; rowIdx++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'sequencer-pair-row';
 
-            // Bar number
-            const numSpan = document.createElement('span');
-            numSpan.className = 'bar-num';
-            numSpan.innerText = b + 1;
-            cell.appendChild(numSpan);
+            const barA = rowIdx * 2;
+            const barB = rowIdx * 2 + 1;
 
-            // Active programmed notes indicator dots
-            const indicatorDiv = document.createElement('div');
-            indicatorDiv.className = 'bar-indicators';
+            [barA, barB].forEach(b => {
+                if (b >= TOTAL_BARS) return;
 
-            // Check if bar has active steps
-            let hasRiddim = sequencerData.riddim[b].some(step => step);
-            let hasArp = sequencerData.arp[b].some(step => step);
+                const chord = progression[b];
+                const card = document.createElement('div');
+                card.className = `sequencer-bar-card ${chord && chord.isBridge ? 'bridge-bar' : 'base-bar'}`;
+                card.id = `bar-card-${b}`;
 
-            const rDot = document.createElement('div');
-            rDot.className = 'indicator-dot';
-            if (hasRiddim) rDot.classList.add('riddim-active');
+                if (b === editingBar) {
+                    card.classList.add('selected-card');
+                }
+                if (isPlaying && b === playingBar) {
+                    card.classList.add('active-card');
+                }
 
-            const aDot = document.createElement('div');
-            aDot.className = 'indicator-dot';
-            if (hasArp) aDot.classList.add('arp-active');
+                // Card Click Focus Handler
+                card.addEventListener('mousedown', (e) => {
+                    // Only trigger if not clicking a step cell directly to prevent focus fighting
+                    if (!e.target.classList.contains('compact-step-cell')) {
+                        editingBar = b;
+                        document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                        renderMasterSequencer();
+                        updateTheoryPanel(b);
+                    }
+                });
 
-            indicatorDiv.appendChild(rDot);
-            indicatorDiv.appendChild(aDot);
-            cell.appendChild(indicatorDiv);
+                // 1. Header Info
+                const header = document.createElement('div');
+                header.className = 'bar-header-info';
 
-            // Edit focus change click handler
-            cell.addEventListener('click', () => {
-                editingBar = b;
-                document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${b + 1}`;
-                document.getElementById('sequencerTitle').innerText = `Bar ${b + 1} Step Sequencer`;
-                renderBarGrid();
-                renderStepSequencer();
-                updateTheoryPanel(b);
+                const title = document.createElement('span');
+                title.className = 'bar-title';
+                title.innerText = `Bar ${b + 1}`;
+
+                const chordLabel = document.createElement('span');
+                chordLabel.className = 'bar-chord-name';
+                chordLabel.style.color = chord && chord.isBridge ? 'var(--accent-bridge)' : 'var(--accent-base)';
+                chordLabel.innerText = chord ? chord.name : 'Initializing...';
+
+                header.appendChild(title);
+                header.appendChild(chordLabel);
+                card.appendChild(header);
+
+                // 2. Riddim compact grid row
+                const riddimRow = document.createElement('div');
+                riddimRow.className = 'compact-grid-row';
+
+                const rIcon = document.createElement('span');
+                rIcon.className = 'grid-icon';
+                rIcon.style.color = 'var(--accent-bridge)';
+                rIcon.innerText = '🥁';
+                rIcon.title = 'Bassline trigger grid';
+
+                const rStepsContainer = document.createElement('div');
+                rStepsContainer.className = 'compact-steps';
+
+                for (let s = 0; s < STEPS_PER_BAR; s++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'compact-step-cell';
+                    cell.id = `riddim-cell-${b}-${s}`;
+                    if (sequencerData.riddim[b][s]) {
+                        cell.classList.add('riddim-active');
+                    }
+                    if (isPlaying && b === playingBar && s === playingStep) {
+                        cell.classList.add('current-playhead');
+                    }
+
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        sequencerData.riddim[b][s] = !sequencerData.riddim[b][s];
+                        cell.classList.toggle('riddim-active');
+                        // Auto-select bar as editing bar
+                        if (editingBar !== b) {
+                            editingBar = b;
+                            document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                            renderMasterSequencer();
+                            updateTheoryPanel(b);
+                        }
+                    });
+
+                    rStepsContainer.appendChild(cell);
+                }
+
+                riddimRow.appendChild(rIcon);
+                riddimRow.appendChild(rStepsContainer);
+                card.appendChild(riddimRow);
+
+                // 3. Arpeggiator compact grid row
+                const arpRow = document.createElement('div');
+                arpRow.className = 'compact-grid-row';
+
+                const aIcon = document.createElement('span');
+                aIcon.className = 'grid-icon';
+                aIcon.style.color = 'var(--accent-base)';
+                aIcon.innerText = '🌀';
+                aIcon.title = 'Arpeggiator trigger grid';
+
+                const aStepsContainer = document.createElement('div');
+                aStepsContainer.className = 'compact-steps';
+
+                for (let s = 0; s < STEPS_PER_BAR; s++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'compact-step-cell';
+                    cell.id = `arp-cell-${b}-${s}`;
+                    if (sequencerData.arp[b][s]) {
+                        cell.classList.add('arp-active');
+                    }
+                    if (isPlaying && b === playingBar && s === playingStep) {
+                        cell.classList.add('current-playhead');
+                    }
+
+                    cell.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        sequencerData.arp[b][s] = !sequencerData.arp[b][s];
+                        cell.classList.toggle('arp-active');
+                        // Auto-select bar as editing bar
+                        if (editingBar !== b) {
+                            editingBar = b;
+                            document.getElementById('editorBarIndicator').innerText = `Editing Focus: Bar ${b + 1}`;
+                            renderMasterSequencer();
+                            updateTheoryPanel(b);
+                        }
+                    });
+
+                    aStepsContainer.appendChild(cell);
+                }
+
+                arpRow.appendChild(aIcon);
+                arpRow.appendChild(aStepsContainer);
+                card.appendChild(arpRow);
+
+                rowDiv.appendChild(card);
             });
 
-            grid.appendChild(cell);
-        }
-    }
-
-    // Render 16 Steps details
-    function renderStepSequencer() {
-        const riddimGrid = document.getElementById('riddimGrid');
-        const arpGrid = document.getElementById('arpGrid');
-
-        riddimGrid.innerHTML = '';
-        arpGrid.innerHTML = '';
-
-        for (let s = 0; s < STEPS_PER_BAR; s++) {
-            // Riddim step
-            const rCell = document.createElement('div');
-            rCell.className = 'step-cell';
-            if (sequencerData.riddim[editingBar][s]) {
-                rCell.classList.add('riddim-active');
-            }
-            rCell.addEventListener('click', () => {
-                sequencerData.riddim[editingBar][s] = !sequencerData.riddim[editingBar][s];
-                rCell.classList.toggle('riddim-active');
-                renderBarGrid(); // Update active dots in 64-bar view
-            });
-            riddimGrid.appendChild(rCell);
-
-            // Arp step
-            const aCell = document.createElement('div');
-            aCell.className = 'step-cell';
-            if (sequencerData.arp[editingBar][s]) {
-                aCell.classList.add('arp-active');
-            }
-            aCell.addEventListener('click', () => {
-                sequencerData.arp[editingBar][s] = !sequencerData.arp[editingBar][s];
-                aCell.classList.toggle('arp-active');
-                renderBarGrid(); // Update active dots in 64-bar view
-            });
-            arpGrid.appendChild(aCell);
+            container.appendChild(rowDiv);
         }
     }
 
@@ -1521,8 +2684,14 @@
         canvas.height = canvas.parentElement.clientHeight;
 
         function renderFrame() {
-            if (!isPlaying) return;
             requestAnimationFrame(renderFrame);
+
+            if (!isPlaying) {
+                // Render elegant idle dark panel when not playing
+                canvasCtx.fillStyle = '#07090d';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
 
             analyserNode.getByteFrequencyData(dataArray);
 
@@ -1575,7 +2744,6 @@
             globalStepIndex = playingBar * STEPS_PER_BAR;
             scheduledNextNoteTime = audioCtx.currentTime + 0.05;
             runScheduler();
-            drawVisualizer();
         } else {
             playBtn.innerText = "Start Engine";
             playBtn.classList.remove('btn-danger');
@@ -1592,6 +2760,14 @@
     // Dynamic Parameter Listeners
     document.getElementById('bpm').addEventListener('input', (e) => {
         document.getElementById('bpmVal').innerText = e.target.value;
+    });
+
+    document.getElementById('tensionLevel').addEventListener('input', (e) => {
+        document.getElementById('tensionVal').innerText = e.target.value + "%";
+    });
+
+    document.getElementById('mutationRate').addEventListener('input', (e) => {
+        document.getElementById('mutationVal').innerText = e.target.value + "%";
     });
 
     document.getElementById('masterVol').addEventListener('input', (e) => {
@@ -1646,53 +2822,109 @@
         document.getElementById('arpDecayVal').innerText = e.target.value + " ms";
     });
 
+    // --- Synthesizer Voice Editors Listeners ---
+    document.getElementById('bassVol').addEventListener('input', (e) => {
+        document.getElementById('bassVolVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('bassAttack').addEventListener('input', (e) => {
+        document.getElementById('bassAttackVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('bassDecay').addEventListener('input', (e) => {
+        document.getElementById('bassDecayVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('bassSustain').addEventListener('input', (e) => {
+        document.getElementById('bassSustainVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('bassRelease').addEventListener('input', (e) => {
+        document.getElementById('bassReleaseVal').innerText = e.target.value + " ms";
+    });
+
+    document.getElementById('arpVol').addEventListener('input', (e) => {
+        document.getElementById('arpVolVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('arpAttack').addEventListener('input', (e) => {
+        document.getElementById('arpAttackVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('arpDecay').addEventListener('input', (e) => {
+        document.getElementById('arpDecayVal').innerText = e.target.value + " ms";
+    });
+    document.getElementById('arpSustain').addEventListener('input', (e) => {
+        document.getElementById('arpSustainVal').innerText = e.target.value + "%";
+    });
+    document.getElementById('arpRelease').addEventListener('input', (e) => {
+        document.getElementById('arpReleaseVal').innerText = e.target.value + " ms";
+    });
+
     // Generate progression
     document.getElementById('generateProgBtn').addEventListener('click', generateJourney);
 
-    // Step sequencer navigations and helpers
-    document.getElementById('prevBarBtn').addEventListener('click', () => {
-        if (editingBar > 0) {
-            editingBar--;
-            document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${editingBar + 1}`;
-            document.getElementById('sequencerTitle').innerText = `Bar ${editingBar + 1} Step Sequencer`;
-            renderBarGrid();
-            renderStepSequencer();
-            updateTheoryPanel(editingBar);
-        }
-    });
+    // Loop Range Selectors Dynamic Initialization
+    function initLoopRangeSelectors() {
+        const loopStartSelect = document.getElementById('loopStart');
+        const loopEndSelect = document.getElementById('loopEnd');
+        if (!loopStartSelect || !loopEndSelect) return;
 
-    document.getElementById('nextBarBtn').addEventListener('click', () => {
-        if (editingBar < TOTAL_BARS - 1) {
-            editingBar++;
-            document.getElementById('editorBarIndicator').innerText = `Editing: Bar ${editingBar + 1}`;
-            document.getElementById('sequencerTitle').innerText = `Bar ${editingBar + 1} Step Sequencer`;
-            renderBarGrid();
-            renderStepSequencer();
-            updateTheoryPanel(editingBar);
-        }
-    });
+        loopStartSelect.innerHTML = '';
+        loopEndSelect.innerHTML = '';
 
+        for (let i = 1; i <= TOTAL_BARS; i++) {
+            const optStart = document.createElement('option');
+            optStart.value = i;
+            optStart.innerText = `Bar ${i}`;
+            loopStartSelect.appendChild(optStart);
+
+            const optEnd = document.createElement('option');
+            optEnd.value = i;
+            optEnd.innerText = `Bar ${i}`;
+            loopEndSelect.appendChild(optEnd);
+        }
+
+        // Default loop covers full 64 bars
+        loopStartSelect.value = 1;
+        loopEndSelect.value = 64;
+
+        // Auto-correct out-of-bounds selections
+        loopStartSelect.addEventListener('change', () => {
+            let startVal = parseInt(loopStartSelect.value);
+            let endVal = parseInt(loopEndSelect.value);
+            if (startVal > endVal) {
+                loopEndSelect.value = startVal;
+            }
+        });
+
+        loopEndSelect.addEventListener('change', () => {
+            let startVal = parseInt(loopStartSelect.value);
+            let endVal = parseInt(loopEndSelect.value);
+            if (endVal < startVal) {
+                loopStartSelect.value = endVal;
+            }
+        });
+
+        document.getElementById('resetLoopBtn').addEventListener('click', () => {
+            loopStartSelect.value = 1;
+            loopEndSelect.value = 64;
+        });
+    }
+
+    // Step sequencer button controls for the currently focused/editing bar
     document.getElementById('clearBarBtn').addEventListener('click', () => {
         sequencerData.riddim[editingBar].fill(false);
         sequencerData.arp[editingBar].fill(false);
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('randRiddimBtn').addEventListener('click', () => {
         for (let s = 0; s < STEPS_PER_BAR; s++) {
             sequencerData.riddim[editingBar][s] = Math.random() > 0.65;
         }
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('randArpBtn').addEventListener('click', () => {
         for (let s = 0; s < STEPS_PER_BAR; s++) {
             sequencerData.arp[editingBar][s] = Math.random() > 0.5;
         }
-        renderBarGrid();
-        renderStepSequencer();
+        renderMasterSequencer();
     });
 
     document.getElementById('copyToAllBtn').addEventListener('click', () => {
@@ -1703,14 +2935,438 @@
                     sequencerData.arp[b] = [...sequencerData.arp[editingBar]];
                 }
             }
-            renderBarGrid();
+            renderMasterSequencer();
             alert("Pattern copied to all 64 bars successfully!");
         }
     });
 
-    // --- 9. BOOTSTRAP INITIALIZATION ---
+    // --- 9. GENETIC EVOLUTIONARY BREEDING ENGINE ---
+    // A population/chromosomes holding 64-bar structures
+    // Each chromosome has .progression array, .name, and .date
+    let breedingCandidates = [null, null, null, null];
+
+    function cloneProgressionArray(progArray) {
+        return progArray.map(item => {
+            if (!item) return null;
+            return {
+                notes: [...item.notes],
+                name: item.name,
+                isBridge: item.isBridge,
+                explanation: item.explanation
+            };
+        });
+    }
+
+    // Initialize/Regenerate the breeding lab population with varied base options
+    function initializeBreedingLabCandidates() {
+        const root = parseInt(document.getElementById('rootKey').value);
+        const baseType = document.getElementById('baseChordType').value;
+        const bridgeType = document.getElementById('bridgeChordType').value;
+        const bridgeInterval = parseInt(document.getElementById('bridgeInterval').value);
+        const bridgeFreq = parseInt(document.getElementById('bridgeFreq').value);
+        const bridgeDuration = parseInt(document.getElementById('bridgeDuration').value);
+        const tensionPercent = parseFloat(document.getElementById('tensionLevel').value);
+
+        // Populate Candidate 1: Classic Jazz Standard base
+        let tempProg1 = new Array(TOTAL_BARS).fill(null);
+        let degrees1 = [0, 9, 2, 7]; // I - vi - ii - V
+        let qualities1 = ["maj7", "m7", "m7", "7"];
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 4 === 3);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 3, bridgeRoot + 6, bridgeRoot + 10]; // m7b5 bridge
+                name = `${notesArray[bridgeRoot % 12]}m7b5 (Bridge Tension)`;
+                explanation = "Tense bridge chord.";
+            } else {
+                let sub = b % 4;
+                let cRoot = (root + degrees1[sub]) % 12 + 48;
+                let q = qualities1[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : ((q === 'm7') ? [0, 3, 7, 10] : [0, 4, 7, 10]);
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Consonant jazz base chord.";
+            }
+            tempProg1[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[0] = { progression: tempProg1, desc: "Classic Jazz Foundation" };
+
+        // Populate Candidate 2: Circle of Fifths style base
+        let tempProg2 = new Array(TOTAL_BARS).fill(null);
+        let degrees2 = [0, 8, 10, 0]; // I - bVI - bVII - I modal interchange
+        let qualities2 = ["maj7", "maj7", "7", "maj7"];
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 4 >= 2);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 2, bridgeRoot + 3, bridgeRoot + 7, bridgeRoot + 8]; // Hirajoshi pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Hirajoshi Bridge`;
+                explanation = "Bridge tension bar.";
+            } else {
+                let sub = b % 4;
+                let cRoot = (root + degrees2[sub]) % 12 + 48;
+                let q = qualities2[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : [0, 4, 7, 10];
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Modal borrowing consonant base.";
+            }
+            tempProg2[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[1] = { progression: tempProg2, desc: "Modal Borrowing Framework" };
+
+        // Populate Candidate 3: Heavy Altered Pentatonic bridge tension
+        let tempProg3 = new Array(TOTAL_BARS).fill(null);
+        let degrees3 = [0, 8, 4, 1, 7, 8]; // Coltrane Changes maj3rds shifting
+        let qualities3 = ["maj7", "maj7", "maj7", "maj7", "7", "maj7"];
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 8 >= 6);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 4, bridgeRoot + 6, bridgeRoot + 8, bridgeRoot + 10]; // Altered pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Altered Dominant Bridge`;
+                explanation = "Altered pentatonic scale.";
+            } else {
+                let sub = b % 6;
+                let cRoot = (root + degrees3[sub]) % 12 + 48;
+                let q = qualities3[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11, 14] : [0, 4, 7, 10, 15]; // extended
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} ${q.toUpperCase()}`;
+                explanation = "Coltrane Changes base.";
+            }
+            tempProg3[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[2] = { progression: tempProg3, desc: "Extended Lydian & Altered" };
+
+        // Populate Candidate 4: Chromatic steps line cliché
+        let tempProg4 = new Array(TOTAL_BARS).fill(null);
+        let degrees4 = [0, 0, 0, 0];
+        let qualities4 = ["maj7", "maj7", "7", "maj7"];
+        for(let b=0; b<TOTAL_BARS; b++) {
+            let isBridge = (b % 6 >= 4);
+            let notes = [];
+            let name = "";
+            let explanation = "";
+            if (isBridge) {
+                let bridgeRoot = (root + bridgeInterval) % 12 + 48;
+                notes = [bridgeRoot, bridgeRoot + 1, bridgeRoot + 5, bridgeRoot + 7, bridgeRoot + 10]; // Insen pentatonic
+                name = `${notesArray[bridgeRoot % 12]} Insen Bridge`;
+                explanation = "Bridge tension.";
+            } else {
+                let sub = b % 4;
+                let cRoot = (root + degrees4[sub]) % 12 + 48;
+                let q = qualities4[sub];
+                let intervals = (q === 'maj7') ? [0, 4, 7, 11] : [0, 4, 7, 10];
+                if (sub === 1) intervals = [0, 4, 7, 11]; // I(maj7)
+                if (sub === 2) intervals = [0, 4, 7, 10]; // I(7)
+                if (sub === 3) intervals = [0, 4, 7, 9];  // I(6)
+                notes = intervals.map(i => cRoot + i);
+                name = `${notesArray[cRoot % 12]} Line Cliche Step`;
+                explanation = "Chromatic step base.";
+            }
+            tempProg4[b] = { notes, name, isBridge, explanation };
+        }
+        breedingCandidates[3] = { progression: tempProg4, desc: "Minor Line Cliché Sequence" };
+
+        updateBreedingLabUI();
+    }
+
+    // Refresh candidate visual DNA strip and descriptors in lab panel
+    function updateBreedingLabUI() {
+        for (let i = 0; i < 4; i++) {
+            const cand = breedingCandidates[i];
+            const descEl = document.getElementById(`candDesc-${i}`);
+            const dnaEl = document.getElementById(`dna-${i}`);
+
+            if (!cand || !cand.progression) {
+                descEl.innerText = "Empty incubator. Click 'Save Active' to capture current progression.";
+                dnaEl.innerHTML = '';
+                continue;
+            }
+
+            descEl.innerText = `${cand.desc} (Size: 64 Bars)`;
+
+            // Visualise DNA stripe
+            dnaEl.innerHTML = '';
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                const bar = cand.progression[b];
+                const segment = document.createElement('div');
+                segment.className = 'dna-bar ' + (bar.isBridge ? 'is-bridge' : 'is-base');
+                dnaEl.appendChild(segment);
+            }
+        }
+    }
+
+    // Load candidate from breeding lab into the active playing slot
+    window.loadCandidate = function(idx) {
+        const cand = breedingCandidates[idx];
+        if (!cand || !cand.progression) {
+            alert(`Incubator #${idx+1} is empty! Save active progression here first.`);
+            return;
+        }
+
+        // Overwrite active progression
+        progression = cloneProgressionArray(cand.progression);
+
+        // Visual feedback
+        for (let i = 0; i < 4; i++) {
+            const card = document.getElementById(`candidate-${i}`);
+            const loadBtn = document.getElementById(`loadBtn-${i}`);
+            if (i === idx) {
+                card.classList.add('active-loaded');
+                loadBtn.innerText = "Active Play";
+                loadBtn.style.backgroundColor = "var(--accent-base)";
+                loadBtn.style.color = "#000";
+            } else {
+                card.classList.remove('active-loaded');
+                loadBtn.innerText = "Load Active";
+                loadBtn.style.backgroundColor = "#1b2130";
+                loadBtn.style.color = "var(--text-main)";
+            }
+        }
+
+        renderMasterSequencer();
+        updateTheoryPanel(editingBar);
+        alert(`Successfully loaded DNA chromosome sequence from Incubator #${idx+1} into the active play engine!`);
+    };
+
+    // Save/clone currently active progression into the breeding lab candidate slot
+    window.cloneCurrentToCandidate = function(idx) {
+        breedingCandidates[idx] = {
+            progression: cloneProgressionArray(progression),
+            desc: `User Cloned active session (Generation ${new Date().toLocaleTimeString()})`
+        };
+        updateBreedingLabUI();
+        alert(`Captured currently active progression chromosome and saved into Incubator #${idx+1}!`);
+    };
+
+    // Validation function for checking offspring for obvious errors
+    function validateOffspring(childProg) {
+        let totalBars = childProg.length;
+        let bridgeCount = 0;
+        let baseCount = 0;
+
+        for (let b = 0; b < totalBars; b++) {
+            const bar = childProg[b];
+            if (!bar || !bar.notes || bar.notes.length === 0) {
+                return { valid: false, reason: `Bar ${b+1} is empty or has no notes` };
+            }
+            if (bar.notes.length < 3) {
+                return { valid: false, reason: `Bar ${b+1} chord has insufficient voicing size (${bar.notes.length} notes)` };
+            }
+
+            // Check duplicate pitches
+            let uniquePitches = new Set(bar.notes);
+            if (uniquePitches.size !== bar.notes.length) {
+                return { valid: false, reason: `Bar ${b+1} contains duplicate pitches` };
+            }
+
+            // Check out of bounds
+            for (let n of bar.notes) {
+                if (n < 24 || n > 115) {
+                    return { valid: false, reason: `Bar ${b+1} contains extreme out-of-bounds pitch (${n})` };
+                }
+            }
+
+            if (bar.isBridge) {
+                bridgeCount++;
+            } else {
+                baseCount++;
+            }
+        }
+
+        // Check for bridge/consonant contrast
+        if (bridgeCount < 4) {
+            return { valid: false, reason: `Insufficient bridge contrast (only ${bridgeCount} bridge bars, need at least 4)` };
+        }
+        if (baseCount < 8) {
+            return { valid: false, reason: `Insufficient base presence (only ${baseCount} base bars, need at least 8)` };
+        }
+
+        // Check for complete monotony (no chord change at all across 64 bars)
+        let firstChordJSON = JSON.stringify([...childProg[0].notes].sort((a,b)=>a-b));
+        let allSame = true;
+        for (let b = 1; b < totalBars; b++) {
+            let chordJSON = JSON.stringify([...childProg[b].notes].sort((a,b)=>a-b));
+            if (chordJSON !== firstChordJSON) {
+                allSame = false;
+                break;
+            }
+        }
+        if (allSame) {
+            return { valid: false, reason: "Lacks harmonic progression (all bars contain identical chords)" };
+        }
+
+        // Check for extreme cluster dissonance (consecutive semitones muddying the sound)
+        for (let b = 0; b < totalBars; b++) {
+            const sortedNotes = [...childProg[b].notes].sort((a, b) => a - b);
+            let clusterCount = 0;
+            for (let i = 0; i < sortedNotes.length - 1; i++) {
+                if (sortedNotes[i + 1] - sortedNotes[i] <= 1) {
+                    clusterCount++;
+                }
+            }
+            if (clusterCount > 2) {
+                return { valid: false, reason: `Bar ${b+1} has an extremely muddy cluster (${clusterCount} consecutive semitone clashes)` };
+            }
+        }
+
+        return { valid: true };
+    }
+
+    // Trigger genetic crossover / crossbreeding
+    window.triggerBreedingLabBreed = function() {
+        const idxA = parseInt(document.getElementById('parentA').value);
+        const idxB = parseInt(document.getElementById('parentB').value);
+        const method = document.getElementById('crossoverMethod').value;
+        const targetIdx = parseInt(document.getElementById('targetIncubator').value);
+
+        const parentA = breedingCandidates[idxA];
+        const parentB = breedingCandidates[idxB];
+
+        if (!parentA || !parentB) {
+            alert("Ensure both parent incubator cards are populated with genes before breeding!");
+            return;
+        }
+
+        let childProg = null;
+        let attempts = 0;
+        const maxAttempts = 100;
+        let validationResult = { valid: false, reason: "Not executed" };
+        let finalMutateCount = 0;
+
+        while (attempts < maxAttempts) {
+            attempts++;
+            childProg = new Array(TOTAL_BARS).fill(null);
+
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                let sourceParent = parentA;
+
+                if (method === 'single') {
+                    // Split exactly down the middle
+                    sourceParent = (b < TOTAL_BARS / 2) ? parentA : parentB;
+                } else if (method === 'double') {
+                    // Split at 1/4 and 3/4 bars
+                    if (b >= TOTAL_BARS / 4 && b < (TOTAL_BARS * 3 / 4)) {
+                        sourceParent = parentB;
+                    } else {
+                        sourceParent = parentA;
+                    }
+                } else if (method === 'uniform') {
+                    // Random coin flip per bar
+                    sourceParent = (Math.random() > 0.5) ? parentA : parentB;
+                } else if (method === 'interleave') {
+                    // Alternate bars
+                    sourceParent = (b % 2 === 0) ? parentA : parentB;
+                }
+
+                // Copy bar note details
+                childProg[b] = {
+                    notes: [...sourceParent.progression[b].notes],
+                    name: sourceParent.progression[b].name,
+                    isBridge: sourceParent.progression[b].isBridge,
+                    explanation: sourceParent.progression[b].explanation
+                };
+            }
+
+            // Apply a slight mutation automatically upon crossbreeding (dynamic adjustment)
+            let mutationProb = 0.10 + (attempts * 0.002);
+            finalMutateCount = 0;
+            for (let b = 0; b < TOTAL_BARS; b++) {
+                if (Math.random() < mutationProb) {
+                    finalMutateCount++;
+                    let semitones = (Math.random() > 0.5) ? 1 : -1;
+                    if (attempts > 5) {
+                        let jumps = [1, -1, 5, -5, 7, -7, 12, -12];
+                        semitones = jumps[Math.floor(Math.random() * jumps.length)];
+                    }
+                    childProg[b].notes = childProg[b].notes.map(n => n + semitones);
+                    childProg[b].name += " (Mutated)";
+                }
+            }
+
+            validationResult = validateOffspring(childProg);
+            if (validationResult.valid) {
+                break;
+            } else {
+                console.warn(`[Regeneration Cycle] Offspring rejected on attempt ${attempts}: ${validationResult.reason}. Splicing and mutating again.`);
+            }
+        }
+
+        if (!validationResult.valid) {
+            alert(`Crossover warning: Splicing generated consecutive errors after ${attempts} attempts. Keeping the last generated offspring anyway. Reason: ${validationResult.reason}`);
+        }
+
+        breedingCandidates[targetIdx] = {
+            progression: childProg,
+            desc: `Hybrid Offspring (A: #${idxA+1} × B: #${idxB+1}, ${finalMutateCount} mutations, ${attempts} gen cycles)`
+        };
+
+        updateBreedingLabUI();
+        if (attempts > 1) {
+            alert(`Splicing Succeeded with Automatic Offspring Preselection!\nRegenerated ${attempts - 1} faulty offspring before obtaining a perfect candidate chromosome.`);
+        } else {
+            alert(`Successfully crossed parent chromosome DNA! Spliced offspring loaded into Incubator #${targetIdx+1}.`);
+        }
+    };
+
+    // Mutate candidate directly inside breeding lab
+    window.mutateCandidate = function(idx) {
+        const cand = breedingCandidates[idx];
+        if (!cand || !cand.progression) {
+            alert("This incubator is empty. Create or clone a progression before mutating it.");
+            return;
+        }
+
+        let mutantProg = cloneProgressionArray(cand.progression);
+        let mutationCount = 0;
+
+        for (let b = 0; b < TOTAL_BARS; b++) {
+            if (Math.random() < 0.25) { // 25% chance of mutating a bar
+                mutationCount++;
+                // Transpose chords by a fourth, fifth, or octave
+                let intervalOpts = [5, -5, 7, -7, 12, -12];
+                let chosenOffset = intervalOpts[Math.floor(Math.random() * intervalOpts.length)];
+
+                mutantProg[b].notes = mutantProg[b].notes.map(n => n + chosenOffset);
+                mutantProg[b].name = "[Mutant Chord] " + mutantProg[b].name;
+                mutantProg[b].explanation = "Chromosome mutation: transposed chords by " + chosenOffset + " semitones. " + mutantProg[b].explanation;
+            }
+        }
+
+        breedingCandidates[idx] = {
+            progression: mutantProg,
+            desc: `Mutant Variant of #${idx+1} (${mutationCount} bar transpositions)`
+        };
+
+        updateBreedingLabUI();
+        alert(`DNA mutated inside Incubator #${idx+1}! ${mutationCount} bars altered.`);
+    };
+
+    // --- 10. BOOTSTRAP INITIALIZATION ---
+    initLoopRangeSelectors();
     generateJourney();
-    renderStepSequencer();
+    initializeBreedingLabCandidates(); // Initialize breeding lab candidates
+    renderMasterSequencer();
+
+    // Global resize listener for canvas visualizer - runs exactly once
+    window.addEventListener('resize', () => {
+        const canvas = document.getElementById('visualizerCanvas');
+        if (canvas && canvas.parentElement) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+    });
 </script>
 </body>
 </html>
