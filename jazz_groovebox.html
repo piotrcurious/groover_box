@@ -28,7 +28,7 @@
             font-family: var(--font-family);
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 20px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -41,7 +41,7 @@
             max-width: 1200px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
         }
 
         header {
@@ -49,8 +49,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2px solid var(--panel-border);
-            padding-bottom: 15px;
-            margin-bottom: 10px;
+            padding-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .header-title h1 {
@@ -72,7 +72,7 @@
         .dashboard {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 12px;
         }
 
         @media (min-width: 900px) {
@@ -86,10 +86,10 @@
             background-color: var(--panel-color);
             border: 1px solid var(--panel-border);
             border-radius: 12px;
-            padding: 20px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 8px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
         }
 
@@ -98,8 +98,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--panel-border);
-            padding-bottom: 8px;
-            margin-bottom: 5px;
+            padding-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .panel-title {
@@ -133,12 +133,25 @@
             font-family: monospace;
         }
 
-        select, input[type="range"] {
+        select {
             background-color: #0b0d13;
             border: 1px solid var(--panel-border);
             border-radius: 6px;
             color: var(--text-main);
-            padding: 8px 12px;
+            padding: 5px 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            background-color: #0b0d13;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            color: var(--text-main);
+            padding: 4px;
             font-family: inherit;
             font-size: 0.85rem;
             outline: none;
@@ -550,11 +563,11 @@
             background-color: var(--accent-bridge);
         }
 
-        /* --- 64-BAR MASTER STACK SEQUENCER STYLES --- */
+        /* --- 64-BAR MASTER STACK SEQUENCER STYLES (COMPACT HIGH-DENSITY EDITION) --- */
         .master-sequencer-scroll {
-            max-height: 520px;
+            max-height: 650px;
             overflow-y: auto;
-            padding-right: 8px;
+            padding-right: 6px;
             scroll-behavior: smooth;
         }
 
@@ -578,26 +591,26 @@
         .sequencer-pair-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 6px;
         }
 
         /* Responsive stack on mobile/smaller screens */
         @media (max-width: 900px) {
             .sequencer-pair-row {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 6px;
             }
         }
 
         .sequencer-bar-card {
             background: #0f131a;
             border: 1px solid var(--panel-border);
-            border-radius: 6px;
-            padding: 8px 12px;
+            border-radius: 4px;
+            padding: 3px 6px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 2px;
             position: relative;
             transition: all 0.15s ease-in-out;
             cursor: pointer;
@@ -650,26 +663,26 @@
         .compact-grid-row {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .grid-icon {
-            font-size: 0.8rem;
-            width: 14px;
+            font-size: 0.75rem;
+            width: 12px;
             text-align: center;
         }
 
         .compact-steps {
             display: grid;
             grid-template-columns: repeat(16, 1fr);
-            gap: 4px;
+            gap: 3px;
             flex-grow: 1;
         }
 
         .compact-step-cell {
-            aspect-ratio: 0.8;
+            height: 10px;
             background-color: var(--grid-off);
-            border-radius: 3px;
+            border-radius: 1.5px;
             cursor: pointer;
             position: relative;
             transition: all 0.08s;
@@ -1107,12 +1120,6 @@
                         <button class="btn btn-xs btn-primary" id="resetLoopBtn" style="margin-left: 4px;">All 64</button>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 8px; background: #131722; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
-                        <input type="checkbox" id="autoScrollActive" checked style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--accent-base);">
-                        <label for="autoScrollActive" style="margin:0; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); cursor: pointer; user-select: none;">
-                            📺 Auto-Scroll Follow
-                        </label>
-                    </div>
 
                     <div class="sequencer-quick-btns" style="display: flex; gap: 6px; flex-wrap: wrap;">
                         <button class="btn btn-xs" id="clearBarBtn">Clear Focus</button>
@@ -1122,7 +1129,7 @@
                     </div>
                 </div>
 
-                <div style="padding: 16px;">
+                <div style="padding: 8px;">
                     <div class="master-sequencer-scroll" id="masterSequencerGrid">
                         <!-- 32 rows of paired bars will be dynamically generated here -->
                     </div>
@@ -1130,7 +1137,7 @@
             </div>
 
             <!-- Visualization & Theory Desk -->
-            <div style="display: grid; grid-template-columns: 1fr; gap: 20px;" class="vis-theory-section">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 12px;" class="vis-theory-section">
                 <div class="panel">
                     <div class="panel-header">
                         <span class="panel-title">👁️ Live Psychoacoustic Spectrum</span>
@@ -2350,23 +2357,6 @@
         const currentCard = document.getElementById(`bar-card-${bar}`);
         if (currentCard) {
             currentCard.classList.add('active-card');
-
-            // Auto-scroll current card smoothly *only* inside its parent container (no window/viewport jump)
-            const autoScrollCheckbox = document.getElementById('autoScrollActive');
-            if (autoScrollCheckbox && autoScrollCheckbox.checked && bar !== lastPlayingBar) {
-                const container = document.getElementById('masterSequencerGrid');
-                if (container) {
-                    const cardTop = currentCard.offsetTop;
-                    const containerHeight = container.clientHeight;
-                    const cardHeight = currentCard.offsetHeight;
-
-                    // Center the active card in the scroll viewport smoothly
-                    container.scrollTo({
-                        top: cardTop - (containerHeight / 2) + (cardHeight / 2),
-                        behavior: 'smooth'
-                    });
-                }
-            }
         }
 
         const currentRCell = document.getElementById(`riddim-cell-${bar}-${stepInBar}`);
