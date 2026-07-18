@@ -1107,6 +1107,13 @@
                         <button class="btn btn-xs btn-primary" id="resetLoopBtn" style="margin-left: 4px;">All 64</button>
                     </div>
 
+                    <div style="display: flex; align-items: center; gap: 8px; background: #131722; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--panel-border);">
+                        <input type="checkbox" id="autoScrollActive" checked style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--accent-base);">
+                        <label for="autoScrollActive" style="margin:0; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); cursor: pointer; user-select: none;">
+                            📺 Auto-Scroll Follow
+                        </label>
+                    </div>
+
                     <div class="sequencer-quick-btns" style="display: flex; gap: 6px; flex-wrap: wrap;">
                         <button class="btn btn-xs" id="clearBarBtn">Clear Focus</button>
                         <button class="btn btn-xs" id="randRiddimBtn">Rand Bass</button>
@@ -2268,9 +2275,21 @@
         if (currentCard) {
             currentCard.classList.add('active-card');
 
-            // Auto-scroll current card into view inside scrollable master sequencer wrapper
-            if (bar !== lastPlayingBar) {
-                currentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Auto-scroll current card smoothly *only* inside its parent container (no window/viewport jump)
+            const autoScrollCheckbox = document.getElementById('autoScrollActive');
+            if (autoScrollCheckbox && autoScrollCheckbox.checked && bar !== lastPlayingBar) {
+                const container = document.getElementById('masterSequencerGrid');
+                if (container) {
+                    const cardTop = currentCard.offsetTop;
+                    const containerHeight = container.clientHeight;
+                    const cardHeight = currentCard.offsetHeight;
+
+                    // Center the active card in the scroll viewport smoothly
+                    container.scrollTo({
+                        top: cardTop - (containerHeight / 2) + (cardHeight / 2),
+                        behavior: 'smooth'
+                    });
+                }
             }
         }
 
