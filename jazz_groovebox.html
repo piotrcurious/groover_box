@@ -1762,6 +1762,10 @@
     let analyserNode = null;
     let arpDelayNode = null;
     let arpDelayFeedback = null;
+    let arpDelayHPF = null;
+    let arpDelayLPF = null;
+    let dcBlocker = null;
+    let masterCompressor = null;
     let scheduledNextNoteTime = 0.0;
     let schedulerTimerId = null;
     let lookaheadTimeMs = 25.0;
@@ -1787,12 +1791,25 @@
         masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(parseFloat(document.getElementById('masterVol').value) / 100, audioCtx.currentTime);
 
+        // --- Production-Grade Master Dynamics Compressor Node ---
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.threshold.setValueAtTime(-14, audioCtx.currentTime);
+        masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        masterCompressor.ratio.setValueAtTime(3.5, audioCtx.currentTime);
+        masterCompressor.attack.setValueAtTime(0.015, audioCtx.currentTime);
+        masterCompressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+
         // --- Psychoacoustic Processing Chain ---
 
         // 1. Distortion Waveshaper (Saturation)
         saturationNode = audioCtx.createWaveShaper();
         saturationNode.oversample = '4x';
         updateSaturationCurve();
+
+        // 1b. DC Blocker Filter (Highpass 20Hz)
+        dcBlocker = audioCtx.createBiquadFilter();
+        dcBlocker.type = 'highpass';
+        dcBlocker.frequency.setValueAtTime(20, audioCtx.currentTime);
 
         // 2. Channel Splitter & Merger for Haas Stereo Widening
         const channelSplitter = audioCtx.createChannelSplitter(2);
@@ -1825,57 +1842,75 @@
         analyserNode.fftSize = 256;
 
         // Routing Network:
-        // Input -> Saturation -> Splitter
+        // Sources -> Saturation -> DC Blocker -> Splitter
         // Splitter L -> Delay L -> Merger L
         // Splitter R -> Delay R -> Merger R
-        // Merger -> High Exciter & Sub-Bass Enhancer (in parallel)
-        // Merger & Exciter & Sub-Bass -> Master Gain -> Analyser -> Destination
+        // Merger -> parallel High Exciter, Sub Bass, and Direct path -> Master Compressor -> Master Gain -> Analyser -> Destination
 
         masterGain.connect(analyserNode);
         analyserNode.connect(audioCtx.destination);
 
-        // Stereo widener routing
-        saturationNode.connect(channelSplitter);
+        // Link Compressor to Master Gain
+        masterCompressor.connect(masterGain);
+
+        // Stereo widener routing from Saturation through DC blocker
+        saturationNode.connect(dcBlocker);
+        dcBlocker.connect(channelSplitter);
+
         channelSplitter.connect(delayLeft, 0);
         channelSplitter.connect(delayRight, 1);
 
         delayLeft.connect(channelMerger, 0, 0);
         delayRight.connect(channelMerger, 0, 1);
 
-        // Parallel Exciter chain
+        // Parallel Exciter chain -> Master Compressor
         channelMerger.connect(highExciterFilter);
         highExciterFilter.connect(exciterGain);
-        exciterGain.connect(masterGain);
+        exciterGain.connect(masterCompressor);
 
-        // Parallel Sub bass chain
+        // Parallel Sub bass chain -> Master Compressor
         channelMerger.connect(subBassFilter);
         subBassFilter.connect(subEnhancerGain);
-        subEnhancerGain.connect(masterGain);
+        subEnhancerGain.connect(masterCompressor);
 
-        // Direct merge path to master
-        channelMerger.connect(masterGain);
+        // Direct merge path -> Master Compressor
+        channelMerger.connect(masterCompressor);
 
-        // Permanent Global Arp Delay Feedback Loop
+        // Permanent Global Arp Delay Feedback Loop with Highpass/Lowpass filtering
         arpDelayNode = audioCtx.createDelay();
         arpDelayFeedback = audioCtx.createGain();
+        arpDelayHPF = audioCtx.createBiquadFilter();
+        arpDelayLPF = audioCtx.createBiquadFilter();
+
         arpDelayNode.delayTime.setValueAtTime(0.18, audioCtx.currentTime); // 16th note echo
         arpDelayFeedback.gain.setValueAtTime(0.25, audioCtx.currentTime); // Echo volume/decay feedback
 
-        arpDelayNode.connect(arpDelayFeedback);
-        arpDelayFeedback.connect(arpDelayNode); // feedback loop
-        arpDelayFeedback.connect(saturationNode); // send feedback signal to master saturation/chain
+        arpDelayHPF.type = 'highpass';
+        arpDelayHPF.frequency.setValueAtTime(120, audioCtx.currentTime); // Block muddy lows from feeding back
+
+        arpDelayLPF.type = 'lowpass';
+        arpDelayLPF.frequency.setValueAtTime(5000, audioCtx.currentTime); // Warm analog roll-off of highs
+
+        // Loop routing: Delay -> LPF -> HPF -> Gain -> Delay
+        arpDelayNode.connect(arpDelayLPF);
+        arpDelayLPF.connect(arpDelayHPF);
+        arpDelayHPF.connect(arpDelayFeedback);
+        arpDelayFeedback.connect(arpDelayNode);
+
+        // Connect the delayed reflections to the main saturation/DSP chain (parallel delayed send)
+        arpDelayFeedback.connect(saturationNode);
 
         // Kickoff canvas visualizer loop
         drawVisualizer();
     }
 
-    // Function to calculate customized saturation curve
+    // Function to calculate customized saturation curve (optimized to 4096 samples)
     function updateSaturationCurve() {
         if (!saturationNode) return;
         let amount = parseFloat(document.getElementById('psychoSat').value);
         let k = typeof amount === 'number' ? amount : 50;
         k = k * 1.5; // Scale up for beautiful harmonic clipping
-        let n_samples = 44100;
+        let n_samples = 4096;
         let curve = new Float32Array(n_samples);
         let deg = Math.PI / 180;
         for (let i = 0; i < n_samples; ++i) {
@@ -2041,6 +2076,23 @@
         osc2.start(time);
         osc1.stop(stopTime + bRelease + 0.05);
         osc2.stop(stopTime + bRelease + 0.05);
+
+        // Cleanup on note complete (Prevent resource accumulation and GC pressure)
+        osc1.onended = () => {
+            try {
+                osc1.disconnect();
+                osc2.disconnect();
+                filterNode.disconnect();
+                gainNode.disconnect();
+            } catch (e) {
+                // handle any accidental double-disconnect gracefully
+            }
+            // Remove from active tracking
+            let idx1 = activeSynthNodes.indexOf(osc1);
+            if (idx1 !== -1) activeSynthNodes.splice(idx1, 1);
+            let idx2 = activeSynthNodes.indexOf(osc2);
+            if (idx2 !== -1) activeSynthNodes.splice(idx2, 1);
+        };
 
         // Store active nodes
         activeSynthNodes.push(osc1, osc2);
@@ -2225,9 +2277,13 @@
         // Connect pluck to Haas/Sat module
         gainNode.connect(saturationNode);
 
-        // Connect Pluck to global permanent delay loop
+        // Connect Pluck to global permanent delay loop via explicit 20% send level (Avoids unity delay overload)
+        let arpSendGain = null;
         if (arpDelayNode) {
-            gainNode.connect(arpDelayNode);
+            arpSendGain = audioCtx.createGain();
+            arpSendGain.gain.setValueAtTime(0.20, time); // Professional send mix
+            gainNode.connect(arpSendGain);
+            arpSendGain.connect(arpDelayNode);
         }
 
         // Start & Stop
@@ -2235,6 +2291,26 @@
         subOsc.start(time);
         osc.stop(arpStopTime + aRelease + 0.05);
         subOsc.stop(arpStopTime + aRelease + 0.05);
+
+        // Cleanup on note complete (Prevent resource accumulation and GC pressure)
+        osc.onended = () => {
+            try {
+                osc.disconnect();
+                subOsc.disconnect();
+                filterNode.disconnect();
+                gainNode.disconnect();
+                if (arpSendGain) {
+                    arpSendGain.disconnect();
+                }
+            } catch (e) {
+                // handle any accidental double-disconnect gracefully
+            }
+            // Remove from active tracking
+            let idx1 = activeSynthNodes.indexOf(osc);
+            if (idx1 !== -1) activeSynthNodes.splice(idx1, 1);
+            let idx2 = activeSynthNodes.indexOf(subOsc);
+            if (idx2 !== -1) activeSynthNodes.splice(idx2, 1);
+        };
 
         // Store active nodes
         activeSynthNodes.push(osc, subOsc);
@@ -2608,8 +2684,14 @@
         canvas.height = canvas.parentElement.clientHeight;
 
         function renderFrame() {
-            if (!isPlaying) return;
             requestAnimationFrame(renderFrame);
+
+            if (!isPlaying) {
+                // Render elegant idle dark panel when not playing
+                canvasCtx.fillStyle = '#07090d';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
 
             analyserNode.getByteFrequencyData(dataArray);
 
@@ -2662,7 +2744,6 @@
             globalStepIndex = playingBar * STEPS_PER_BAR;
             scheduledNextNoteTime = audioCtx.currentTime + 0.05;
             runScheduler();
-            drawVisualizer();
         } else {
             playBtn.innerText = "Start Engine";
             playBtn.classList.remove('btn-danger');
