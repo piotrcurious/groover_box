@@ -19,6 +19,8 @@ let clock;
 let synth;
 let activeProgression = [];
 let preRenderedBassNotes = [];
+let playedBassHistory = [];
+let playedArpHistory = [];
 let patternInstance;
 let expectationInstance;
 
@@ -190,6 +192,11 @@ function scheduleStep(stepIndex, time) {
         const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
 
         activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
+
+        // Log voice history
+        playedBassHistory.push(activeBassMidi);
+        if (playedBassHistory.length > 16) playedBassHistory.shift();
+
         const tuningFreq = tuningSystem.getFrequencyInfo(activeBassMidi).frequency;
 
         synth.triggerPluckedBass(tuningFreq, time, 0.35);
@@ -290,10 +297,16 @@ function scheduleStep(stepIndex, time) {
                 preRenderedBassNotes,
                 globalStepIndex,
                 jazzShape,
-                melodicConstraint
+                melodicConstraint,
+                playedBassHistory,
+                playedArpHistory
             );
 
             if (arpRes.trigger) {
+                // Log arpeggio voice history
+                playedArpHistory.push(arpRes.note);
+                if (playedArpHistory.length > 16) playedArpHistory.shift();
+
                 const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
                 const soundStyle = document.getElementById("selectArpSound").value;
 

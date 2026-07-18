@@ -947,7 +947,8 @@ const midiManager = new MidiManager();
 // Features a structurally authentic Fractal Fluency Engine that computes pitch and velocity
 // self-similarity based on the active/future layers of the Main Bass Progression and dynamic
 // user-defined Fractal Roots, propagating cleanly across musical resolution targets.
-// Upgraded with classic jazz arpeggio shapes, strict/modal scale constraints, and customizable shape templates.
+// Upgraded with classic jazz arpeggio shapes, strict/modal scale constraints, and
+// dynamic Voice History & Interdependence tracking to ensure proper voice leading and collision avoidance.
 class ArpGenerator {
     constructor() {
         this.index = 0;
@@ -956,7 +957,7 @@ class ArpGenerator {
     /**
      * Determines next arpeggiator note, velocity, and timing trigger parameters.
      * Computes proper Fractal Fluency based on the main bass progression at multiple structural resolutions.
-     * Supports classic jazz arpeggio shapes and strict diatonic scale/chord filtering constraints.
+     * Incorporates rolling pitch history buffer variables to handle polyphonic voice interdependence.
      * @param {Object} chord - Current chord configuration
      * @param {number} step - Resolution-independent virtual step index
      * @param {string} order - Arp note arrangement rule
@@ -982,6 +983,8 @@ class ArpGenerator {
      * @param {number} globalSequencerStep - Total absolute step of the running sequencer (0-1023)
      * @param {string} jazzShape - Classic jazz arpeggio degree mappings ('none', '1-3-5-7', '7-5-3-1', '3-5-7-9', '9-7-5-3', '1-5-3-7', 'full-stack')
      * @param {string} melodicConstraint - Strictly filters output tones ('strict', 'scale-diatonic', 'chromatic')
+     * @param {Array<number>} bassHistory - Array of recently triggered bass MIDI pitches
+     * @param {Array<number>} arpHistory - Array of recently triggered arpeggiator MIDI pitches
      */
     getNextNote(
         chord,
@@ -1008,19 +1011,16 @@ class ArpGenerator {
         fullBassProgression = [],
         globalSequencerStep = 0,
         jazzShape = "none",
-        melodicConstraint = "scale-diatonic"
+        melodicConstraint = "scale-diatonic",
+        bassHistory = [],
+        arpHistory = []
     ) {
         // --- Structural Fractal Fluency Calculation ---
-        // Proper Fractal Fluency is calculated relative to the nearest step that acts as a "Fractal Fluency Root" (Anchor).
-        // It samples deviations of the main bass progression across nested, multi-scale resolution boundaries.
         let fractalFluencyOffset = 0;
         let fractalFluencyVelocityMod = 0;
 
         if (fractalIntensity > 0 && fullBassProgression && fullBassProgression.length > 0) {
             const stepInBar = globalSequencerStep % 16;
-
-            // Find the closest step index that is designated as a Fractal Root (Anchor) in our sequencer.
-            // If none are set, default to standard downbeats (every 4 steps).
             let anchorStep = -1;
             let minDistance = 999;
             const checkRoots = (fractalRoots && fractalRoots.length === 16) ? fractalRoots : [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false];
@@ -1034,12 +1034,10 @@ class ArpGenerator {
                     }
                 }
             }
-            if (anchorStep === -1) anchorStep = 0; // fallback
+            if (anchorStep === -1) anchorStep = 0;
 
             const absoluteAnchorIndex = globalSequencerStep - stepInBar + anchorStep;
 
-            // Sample structural progression deviations at nested fractal resolutions.
-            // Resolutions determine our nested layers (e.g. 1 bar, 2 bars, 4 bars, 8 bars offset).
             let combinedDeviation = 0;
             let totalWeight = 0;
 
@@ -1047,11 +1045,9 @@ class ArpGenerator {
             const numResolutions = Math.max(1, Math.min(4, fractalResolutions));
 
             for (let r = 0; r < numResolutions; r++) {
-                // Resolution window: scaleFactor ^ r (e.g., 4^0=1, 4^1=4, 4^2=16 absolute steps)
                 const windowSize = Math.pow(scaleFactor, r);
-                const weight = 1.0 / (r + 1); // 1/f spectral attenuation weight for higher resolutions
+                const weight = 1.0 / (r + 1);
 
-                // Query the main bass progression values at boundaries
                 const sampleIdx1 = Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex - windowSize));
                 const sampleIdx2 = Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex + windowSize));
 
@@ -1059,7 +1055,6 @@ class ArpGenerator {
                 const val2 = fullBassProgression[sampleIdx2] || 36;
                 const valAnchor = fullBassProgression[Math.max(0, Math.min(fullBassProgression.length - 1, absoluteAnchorIndex))] || 36;
 
-                // Relative deviation calculation
                 const dev = ((val1 + val2) / 2.0) - valAnchor;
                 combinedDeviation += dev * weight;
                 totalWeight += weight;
@@ -1068,7 +1063,6 @@ class ArpGenerator {
             const normalizedDeviation = totalWeight > 0 ? (combinedDeviation / totalWeight) : 0;
             const intensityCoeff = fractalIntensity / 100.0;
 
-            // Convert normalized deviation into scale offset transpositions and velocity dynamics
             fractalFluencyOffset = Math.round(normalizedDeviation * intensityCoeff);
             fractalFluencyVelocityMod = Math.round(normalizedDeviation * 15 * intensityCoeff);
         }
@@ -1076,7 +1070,6 @@ class ArpGenerator {
         // 1. Fractal-influenced density filter
         let adjustedDensity = density;
         if (fractalIntensity > 0) {
-            // Modulate density by fractal offset to introduce waves of organic sparseness/density
             const densityMod = (fractalFluencyOffset % 3) * 10;
             adjustedDensity = Math.max(10, Math.min(100, density + densityMod));
         }
@@ -1145,7 +1138,6 @@ class ArpGenerator {
             scaleIntervals = [0, 2, 4, 5, 7, 9, 10]; // Mixolydian
         }
 
-        // Helper to extract chord degree dynamically from diatonic intervals (1st, 3rd, 5th, 7th, 9th, 11th, 13th)
         const getScaleDegreePitch = (deg) => {
             const scaleDegreeZeroIndexed = deg - 1;
             const octaveShift = Math.floor(scaleDegreeZeroIndexed / scaleIntervals.length);
@@ -1203,6 +1195,46 @@ class ArpGenerator {
         // Apply our proper Fractal Fluency pitch transpositions!
         if (fractalIntensity > 0) {
             targetNote += fractalFluencyOffset;
+        }
+
+        // --- POLYPHONIC INTERDEPENDENCE & VOICE HISTORY RESOLUTION ---
+        if (bassHistory && bassHistory.length > 0) {
+            const lastBass = bassHistory[bassHistory.length - 1];
+
+            // A. Voice Crossing Avoidance
+            // If the arpeggiator's register starts dipping below the active bass pitch,
+            // shift it up by octaves to maintain proper polyphonic voice register separation.
+            while (targetNote <= lastBass + 2) {
+                targetNote += 12;
+            }
+
+            // B. Unison & Collision Avoidance
+            // If the arpeggio target matches the exact pitch of the recently played bass,
+            // shift the arpeggiator to a beautiful upper extension of the scale (9th, 11th, or 13th)
+            if (targetNote === lastBass || (targetNote % 12 === lastBass % 12)) {
+                // Snap up to the nearest diatonic 9th (index 4 of scale) or 11th (index 5)
+                const extensionDegree = notes.length >= 5 ? 9 : 5;
+                targetNote = getScaleDegreePitch(extensionDegree);
+                while (targetNote <= lastBass) {
+                    targetNote += 12;
+                }
+            }
+        }
+
+        if (arpHistory && arpHistory.length > 0) {
+            const lastArp = arpHistory[arpHistory.length - 1];
+
+            // C. Smooth Conjunct Motion & Voice Attraction
+            // If the arpeggio note jumps too wide compared to the previous arpeggiator voice output (e.g. > 15 semitones),
+            // pull it towards the previous octave to establish seamless, fluid conjunct voice leading.
+            const jumpDist = targetNote - lastArp;
+            if (Math.abs(jumpDist) > 15) {
+                const octaveShift = Math.round(jumpDist / 12) * 12;
+                const shiftedNote = targetNote - octaveShift;
+                if (shiftedNote >= minPitch && shiftedNote <= maxPitch) {
+                    targetNote = shiftedNote;
+                }
+            }
         }
 
         // 3. Chromatic / Bebop Passing Enclosures
@@ -1301,7 +1333,7 @@ class ArpGenerator {
             for (let j = 0; j < scaleIntervals.length; j++) {
                 const candidateClass = (chordRoot + scaleIntervals[j]) % 12;
                 let d = Math.abs(currentPitchClass - candidateClass);
-                if (d > 6) d = 12 - d; // circular modulo check
+                if (d > 6) d = 12 - d;
                 if (d < bestDist) {
                     bestDist = d;
                     bestSnap = candidateClass;
@@ -2111,6 +2143,8 @@ let clock;
 let synth;
 let activeProgression = [];
 let preRenderedBassNotes = [];
+let playedBassHistory = [];
+let playedArpHistory = [];
 let patternInstance;
 let expectationInstance;
 
@@ -2282,6 +2316,11 @@ function scheduleStep(stepIndex, time) {
         const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
 
         activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
+
+        // Log voice history
+        playedBassHistory.push(activeBassMidi);
+        if (playedBassHistory.length > 16) playedBassHistory.shift();
+
         const tuningFreq = tuningSystem.getFrequencyInfo(activeBassMidi).frequency;
 
         synth.triggerPluckedBass(tuningFreq, time, 0.35);
@@ -2382,10 +2421,16 @@ function scheduleStep(stepIndex, time) {
                 preRenderedBassNotes,
                 globalStepIndex,
                 jazzShape,
-                melodicConstraint
+                melodicConstraint,
+                playedBassHistory,
+                playedArpHistory
             );
 
             if (arpRes.trigger) {
+                // Log arpeggio voice history
+                playedArpHistory.push(arpRes.note);
+                if (playedArpHistory.length > 16) playedArpHistory.shift();
+
                 const tuningFreq = tuningSystem.getFrequencyInfo(arpRes.note).frequency;
                 const soundStyle = document.getElementById("selectArpSound").value;
 
