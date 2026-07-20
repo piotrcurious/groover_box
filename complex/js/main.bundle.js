@@ -1585,6 +1585,7 @@ const effectsEngine = new EffectsEngine();
 
 // --- MODULE: complex/js/audio/synthesizer.js ---
 // Self-contained subtractive synth, FM synth and physical pluck sound generators
+// Upgraded to dynamically modulate DSP filters and envelopes using real-time psychoacoustic coefficients.
 class Synthesizer {
     constructor(ctx, destination) {
         this.ctx = ctx;
@@ -1599,9 +1600,12 @@ class Synthesizer {
      * @param {number} time - AudioContext timeline schedule moment
      * @param {number} dynamicGain - Dynamic gain scalar based on velocity (0.0 - 1.0)
      * @param {number} durationMultiplier - Length modification coefficient
+     * @param {number} roughness - Real-time sensory roughness coefficient (0.0 - 1.0)
+     * @param {number} harmonicity - Real-time chordal harmonicity coefficient (0.0 - 1.0)
      */
-    triggerSubtractivePluck(frequency, time, dynamicGain = 0.25, durationMultiplier = 1.0) {
-        const duration = 0.25 * durationMultiplier;
+    triggerSubtractivePluck(frequency, time, dynamicGain = 0.25, durationMultiplier = 1.0, roughness = 0.1, harmonicity = 0.8) {
+        // Modulate decay/duration based on the harmonicity clarity level
+        const duration = (0.25 + (harmonicity * 0.15)) * durationMultiplier;
         const osc1 = this.ctx.createOscillator();
         const osc2 = this.ctx.createOscillator();
         const gainNode = this.ctx.createGain();
@@ -1611,11 +1615,13 @@ class Synthesizer {
         osc1.frequency.setValueAtTime(frequency, time);
 
         osc2.type = "square";
-        // Detune osc2 slightly for rich analog unison chorus effect
         osc2.frequency.setValueAtTime(frequency * 1.006, time);
 
         filterNode.type = "lowpass";
-        filterNode.Q.setValueAtTime(8, time);
+        // High roughness (sensory dissonance) drives up lowpass filter resonance for a biting, sharp, resonant timbre!
+        const adjustedQ = 3.0 + (roughness * 12.0);
+        filterNode.Q.setValueAtTime(adjustedQ, time);
+
         // Envelope sweeping the lowpass frequency downwards quickly
         filterNode.frequency.setValueAtTime(150, time);
         filterNode.frequency.exponentialRampToValueAtTime(3500, time + 0.02);
@@ -1638,9 +1644,16 @@ class Synthesizer {
 
     /**
      * Synthesizes a frequency-modulation (FM) pluck with sharp attack
+     * @param {number} frequency - Target frequency of the note
+     * @param {number} time - AudioContext timeline schedule moment
+     * @param {number} dynamicGain - Dynamic gain scalar based on velocity (0.0 - 1.0)
+     * @param {number} durationMultiplier - Length modification coefficient
+     * @param {number} roughness - Real-time sensory roughness coefficient (0.0 - 1.0)
+     * @param {number} harmonicity - Real-time chordal harmonicity coefficient (0.0 - 1.0)
      */
-    triggerFmPluck(frequency, time, dynamicGain = 0.22, durationMultiplier = 1.0) {
-        const duration = 0.20 * durationMultiplier;
+    triggerFmPluck(frequency, time, dynamicGain = 0.22, durationMultiplier = 1.0, roughness = 0.1, harmonicity = 0.8) {
+        // High harmonicity extends the decay duration of the FM bell-like pluck for long organic tails
+        const duration = (0.20 + (harmonicity * 0.18)) * durationMultiplier;
         const carrier = this.ctx.createOscillator();
         const modulator = this.ctx.createOscillator();
         const carrierGain = this.ctx.createGain();
@@ -1650,11 +1663,11 @@ class Synthesizer {
         carrier.frequency.setValueAtTime(frequency, time);
 
         modulator.type = "sine";
-        // 3.5 ratio harmonic modulator for a brassy/bell-like funk timbre
         modulator.frequency.setValueAtTime(frequency * 3.5, time);
 
-        // FM index envelope
-        modGain.gain.setValueAtTime(frequency * 5, time);
+        // FM index envelope: high roughness dramatically increases index peak to trigger raw metallic dissonance!
+        const maxIndex = frequency * (4 + (roughness * 15));
+        modGain.gain.setValueAtTime(maxIndex, time);
         modGain.gain.exponentialRampToValueAtTime(10, time + duration);
 
         carrierGain.gain.setValueAtTime(0.001, time);
@@ -2447,23 +2460,25 @@ function scheduleStep(stepIndex, time) {
                 // Trigger voices with dynamic velocity and gate parameters
                 const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
 
+                // Real-time psychoacoustic parameters to modulate the pluck synthesis elements
+                const chordFrequencies = activeChord.notes.map(note => tuningSystem.getFrequencyInfo(note).frequency);
+                const roughnessVal = Roughness.calculate(chordFrequencies);
+                const harmonicityVal = Harmonicity.calculate(activeChord.notes);
+
                 if (soundStyle === "fm") {
-                    synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                    synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier, roughnessVal, harmonicityVal);
                 } else if (soundStyle === "subtractive") {
-                    synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                    synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier, roughnessVal, harmonicityVal);
                 } else {
                     // Sine simple waves pluck
-                    synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+                    synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier, roughnessVal, harmonicityVal);
                 }
             }
         }
     }
 
-    // 4. Perform psychoacoustic real-time calculation at each chord boundaries (downbeats)
-    if (activeStepInBar === 0 && activeChord !== lastActiveChord) {
-        lastActiveChord = activeChord;
-        calculatePsychoacousticMeasures(activeChord);
-    }
+    // 4. Perform real-time psychoacoustic calculations on every step to update dashboard meters
+    calculatePsychoacousticMeasures(activeChord);
 }
 
 function calculatePsychoacousticMeasures(chord) {

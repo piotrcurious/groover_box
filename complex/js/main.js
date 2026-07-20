@@ -323,23 +323,25 @@ function scheduleStep(stepIndex, time) {
                 // Trigger voices with dynamic velocity and gate parameters
                 const dynamicGain = (arpRes.velocity / 127.0) * 0.3;
 
+                // Real-time psychoacoustic parameters to modulate the pluck synthesis elements
+                const chordFrequencies = activeChord.notes.map(note => tuningSystem.getFrequencyInfo(note).frequency);
+                const roughnessVal = Roughness.calculate(chordFrequencies);
+                const harmonicityVal = Harmonicity.calculate(activeChord.notes);
+
                 if (soundStyle === "fm") {
-                    synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                    synth.triggerFmPluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier, roughnessVal, harmonicityVal);
                 } else if (soundStyle === "subtractive") {
-                    synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier);
+                    synth.triggerSubtractivePluck(tuningFreq, triggerTime, dynamicGain, gateMultiplier, roughnessVal, harmonicityVal);
                 } else {
                     // Sine simple waves pluck
-                    synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier);
+                    synth.triggerFmPluck(tuningFreq * 2.0, triggerTime, dynamicGain * 0.7, gateMultiplier, roughnessVal, harmonicityVal);
                 }
             }
         }
     }
 
-    // 4. Perform psychoacoustic real-time calculation at each chord boundaries (downbeats)
-    if (activeStepInBar === 0 && activeChord !== lastActiveChord) {
-        lastActiveChord = activeChord;
-        calculatePsychoacousticMeasures(activeChord);
-    }
+    // 4. Perform real-time psychoacoustic calculations on every step to update dashboard meters
+    calculatePsychoacousticMeasures(activeChord);
 }
 
 function calculatePsychoacousticMeasures(chord) {
