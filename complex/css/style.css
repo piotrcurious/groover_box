@@ -249,6 +249,15 @@ button.btn-accent:hover {
     box-shadow: 0 0 8px var(--grid-on-frac);
 }
 
+.step-cell.disabled-step {
+    opacity: 0.15;
+    background-color: #0b0c10 !important;
+    border-color: rgba(255,255,255,0.02) !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
 .step-cell.playing::before {
     content: '';
     position: absolute;

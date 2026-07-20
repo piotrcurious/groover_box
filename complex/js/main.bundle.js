@@ -2275,10 +2275,52 @@ function generateProgression() {
 }
 
 function scheduleStep(stepIndex, time) {
+    // Retrieve individual polymetric track loop lengths from UI
+    const kickLen = parseInt(document.getElementById("selectKickLength")?.value || "16");
+    const snareLen = parseInt(document.getElementById("selectSnareLength")?.value || "16");
+    const hihatLen = parseInt(document.getElementById("selectHihatLength")?.value || "16");
+    const bassLen = parseInt(document.getElementById("selectBassLength")?.value || "16");
+    const arpLen = parseInt(document.getElementById("selectArpLength")?.value || "16");
+    const fracLen = parseInt(document.getElementById("selectFracLength")?.value || "16");
+
     // clock.currentStep cycles from 0 to 63 steps (representing 4 bars)
     const currentGlobalStep = clock.currentStep;
-    const activeBarIndex = Math.floor(currentGlobalStep / 16); // 0 to 3
-    const activeStepInBar = currentGlobalStep % 16;             // 0 to 15
+    const activeStepInBar = currentGlobalStep % 16;
+
+    // Calculate loop-bound step index for each polymetric lane
+    const kickStepGlobal = currentGlobalStep % kickLen;
+    const snareStepGlobal = currentGlobalStep % snareLen;
+    const hihatStepGlobal = currentGlobalStep % hihatLen;
+    const bassStepGlobal = currentGlobalStep % bassLen;
+    const arpStepGlobal = currentGlobalStep % arpLen;
+    const fracStepGlobal = currentGlobalStep % fracLen;
+
+    const kickBar = Math.floor(kickStepGlobal / 16);
+    const kickStep = kickStepGlobal % 16;
+    const snareBar = Math.floor(snareStepGlobal / 16);
+    const snareStep = snareStepGlobal % 16;
+    const hihatBar = Math.floor(hihatStepGlobal / 16);
+    const hihatStep = hihatStepGlobal % 16;
+    const bassBar = Math.floor(bassStepGlobal / 16);
+    const bassStep = bassStepGlobal % 16;
+    const arpBar = Math.floor(arpStepGlobal / 16);
+    const arpStep = arpStepGlobal % 16;
+    const fracBar = Math.floor(fracStepGlobal / 16);
+    const fracStep = fracStepGlobal % 16;
+
+    const kickActive = patternInstance.data[kickBar]?.kick[kickStep] || false;
+    const snareActive = patternInstance.data[snareBar]?.snare[snareStep] || false;
+    const hihatActive = patternInstance.data[hihatBar]?.hihat[hihatStep] || false;
+    const bassActive = patternInstance.data[bassBar]?.bass[bassStep] || false;
+    const arpTempoMultiplier = patternInstance.data[arpBar]?.arp[arpStep] || 0;
+
+    // Construct temporary active fractal roots array based on frac loop length
+    const fractalRoots = new Array(16).fill(false);
+    for (let i = 0; i < fracLen; i++) {
+        const fBar = Math.floor(i / 16);
+        const fStep = i % 16;
+        fractalRoots[i] = patternInstance.data[fBar]?.frac[fStep] || false;
+    }
 
     // Map current bar index to progression timelines (looping chord evolution over 64 bars)
     // We can track a progressive timeline index
@@ -2301,13 +2343,13 @@ function scheduleStep(stepIndex, time) {
 
         document.getElementById("lblActiveChord").innerText = `Active: ${activeChord.name}`;
 
-        // Highlight active playhead step cell in all 4 stacked grids
+        // Highlight active playhead step cell in all 4 stacked grids individually based on loop step
         document.querySelectorAll(".step-cell").forEach(el => el.classList.remove("playing"));
 
-        const drumCell = document.getElementById(`drum-step-${activeBarIndex}-${activeStepInBar}`);
-        const bassCell = document.getElementById(`bass-step-${activeBarIndex}-${activeStepInBar}`);
-        const arpCell = document.getElementById(`arp-step-${activeBarIndex}-${activeStepInBar}`);
-        const fracCell = document.getElementById(`frac-step-${activeBarIndex}-${activeStepInBar}`);
+        const drumCell = document.getElementById(`drum-step-${kickBar}-${kickStep}`);
+        const bassCell = document.getElementById(`bass-step-${bassBar}-${bassStep}`);
+        const arpCell = document.getElementById(`arp-step-${arpBar}-${arpStep}`);
+        const fracCell = document.getElementById(`frac-step-${fracBar}-${fracStep}`);
 
         if (drumCell) drumCell.classList.add("playing");
         if (bassCell) bassCell.classList.add("playing");
@@ -2316,19 +2358,18 @@ function scheduleStep(stepIndex, time) {
     });
 
     // 1. Process real-time drum synthesis triggers
-    const barPattern = patternInstance.data[activeBarIndex];
-    if (barPattern.kick[activeStepInBar]) synth.triggerDrum("kick", time);
-    if (barPattern.snare[activeStepInBar]) synth.triggerDrum("snare", time);
-    if (barPattern.hihat[activeStepInBar]) synth.triggerDrum("hihat", time);
+    if (kickActive) synth.triggerDrum("kick", time);
+    if (snareActive) synth.triggerDrum("snare", time);
+    if (hihatActive) synth.triggerDrum("hihat", time);
 
     // 2. Compute and process walking bass trigger
     let activeBassMidi = 36; // Default active reference bass note
-    if (barPattern.bass[activeStepInBar]) {
+    if (bassActive) {
         const style = document.getElementById("selectBassStyle").value;
         const bias = parseInt(document.getElementById("sliderBassBias").value);
         const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
 
-        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
+        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, bassStep, style, bias);
 
         // Log voice history
         playedBassHistory.push(activeBassMidi);
@@ -2348,15 +2389,14 @@ function scheduleStep(stepIndex, time) {
         const style = document.getElementById("selectBassStyle").value;
         const bias = parseInt(document.getElementById("sliderBassBias").value);
         const nextChord = activeProgression[(progressionBarIndex + 1) % 64];
-        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, activeStepInBar, style, bias);
+        activeBassMidi = WalkingBass.generateBassNote(activeChord, nextChord, bassStep, style, bias);
     }
 
     // 3. Process arpeggiation triggers with variable tempo multipliers and bass context tracking
-    const arpTempoMultiplier = barPattern.arp[activeStepInBar] || 0;
 
     // Position half-time early skip logic before executing any generator index steps
     let shouldSkipArp = false;
-    if (arpTempoMultiplier === 0.5 && activeStepInBar % 2 !== 0) {
+    if (arpTempoMultiplier === 0.5 && arpStep % 2 !== 0) {
         shouldSkipArp = true;
     }
 
@@ -2396,14 +2436,13 @@ function scheduleStep(stepIndex, time) {
 
         for (let sub = 0; sub < numSubdivisions; sub++) {
             // Resolution-independent virtual step index scales sequence parameters correctly
-            const virtualStep = (activeStepInBar * numSubdivisions) + sub;
+            const virtualStep = (arpStep * numSubdivisions) + sub;
 
             // Predict the progression of the bass note into the next micro-intervals
             // Pass the activeBassMidi directly so the arpeggio maintains melodic synchronization with the bass!
             const fractalIntensity = parseInt(document.getElementById("sliderArpFractalIntensity").value || "0");
             const fractalScale = parseInt(document.getElementById("sliderArpFractalScale").value || "4");
             const fractalResolutions = parseInt(document.getElementById("sliderArpFractalResolutions").value || "3");
-            const fractalRoots = barPattern.frac || new Array(16).fill(false);
             const globalStepIndex = (progressionBarIndex * 16) + activeStepInBar;
 
             const jazzShape = document.getElementById("selectArpJazzShape").value || "none";
@@ -2526,6 +2565,14 @@ function renderTimeline() {
 }
 
 function renderGrids() {
+    // Retrieve track loop lengths
+    const kickLen = parseInt(document.getElementById("selectKickLength")?.value || "16");
+    const snareLen = parseInt(document.getElementById("selectSnareLength")?.value || "16");
+    const hihatLen = parseInt(document.getElementById("selectHihatLength")?.value || "16");
+    const bassLen = parseInt(document.getElementById("selectBassLength")?.value || "16");
+    const arpLen = parseInt(document.getElementById("selectArpLength")?.value || "16");
+    const fracLen = parseInt(document.getElementById("selectFracLength")?.value || "16");
+
     // Simultaneously render all 4 bar editor stacks
     for (let b = 0; b < 4; b++) {
         const barPattern = patternInstance.data[b];
@@ -2536,12 +2583,19 @@ function renderGrids() {
             drumContainer.innerHTML = "";
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement("div");
-                cell.className = `step-cell ${barPattern.kick[i] ? "active-drum" : ""}`;
+                const globalIdx = (b * 16) + i;
+
+                // Determine if out-of-bounds polymetrically (using kick length for UI row representation)
+                if (globalIdx >= kickLen) {
+                    cell.className = "step-cell disabled-step";
+                } else {
+                    cell.className = `step-cell ${barPattern.kick[i] ? "active-drum" : ""}`;
+                    cell.addEventListener("click", () => {
+                        barPattern.kick[i] = !barPattern.kick[i];
+                        cell.classList.toggle("active-drum");
+                    });
+                }
                 cell.id = `drum-step-${b}-${i}`;
-                cell.addEventListener("click", () => {
-                    barPattern.kick[i] = !barPattern.kick[i];
-                    cell.classList.toggle("active-drum");
-                });
                 drumContainer.appendChild(cell);
             }
         }
@@ -2552,12 +2606,18 @@ function renderGrids() {
             bassContainer.innerHTML = "";
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement("div");
-                cell.className = `step-cell ${barPattern.bass[i] ? "active-bass" : ""}`;
+                const globalIdx = (b * 16) + i;
+
+                if (globalIdx >= bassLen) {
+                    cell.className = "step-cell disabled-step";
+                } else {
+                    cell.className = `step-cell ${barPattern.bass[i] ? "active-bass" : ""}`;
+                    cell.addEventListener("click", () => {
+                        barPattern.bass[i] = !barPattern.bass[i];
+                        cell.classList.toggle("active-bass");
+                    });
+                }
                 cell.id = `bass-step-${b}-${i}`;
-                cell.addEventListener("click", () => {
-                    barPattern.bass[i] = !barPattern.bass[i];
-                    cell.classList.toggle("active-bass");
-                });
                 bassContainer.appendChild(cell);
             }
         }
@@ -2568,8 +2628,16 @@ function renderGrids() {
             arpContainer.innerHTML = "";
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement("div");
-                const mult = barPattern.arp[i] || 0;
+                const globalIdx = (b * 16) + i;
 
+                if (globalIdx >= arpLen) {
+                    cell.className = "step-cell disabled-step";
+                    cell.id = `arp-step-${b}-${i}`;
+                    arpContainer.appendChild(cell);
+                    continue;
+                }
+
+                const mult = barPattern.arp[i] || 0;
                 cell.className = "step-cell";
                 cell.id = `arp-step-${b}-${i}`;
 
@@ -2645,12 +2713,18 @@ function renderGrids() {
             fracContainer.innerHTML = "";
             for (let i = 0; i < 16; i++) {
                 const cell = document.createElement("div");
-                cell.className = `step-cell ${barPattern.frac[i] ? "active-frac" : ""}`;
+                const globalIdx = (b * 16) + i;
+
+                if (globalIdx >= fracLen) {
+                    cell.className = "step-cell disabled-step";
+                } else {
+                    cell.className = `step-cell ${barPattern.frac[i] ? "active-frac" : ""}`;
+                    cell.addEventListener("click", () => {
+                        barPattern.frac[i] = !barPattern.frac[i];
+                        cell.classList.toggle("active-frac");
+                    });
+                }
                 cell.id = `frac-step-${b}-${i}`;
-                cell.addEventListener("click", () => {
-                    barPattern.frac[i] = !barPattern.frac[i];
-                    cell.classList.toggle("active-frac");
-                });
                 fracContainer.appendChild(cell);
             }
         }
@@ -2883,6 +2957,17 @@ function bindUIEvents() {
             }
         }
         renderGrids();
+    });
+
+    // 3.5 Polymetric Track Length Selectors Integration
+    const trackSelectors = ["selectKickLength", "selectSnareLength", "selectHihatLength", "selectBassLength", "selectArpLength", "selectFracLength"];
+    trackSelectors.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("change", () => {
+                renderGrids();
+            });
+        }
     });
 
     // 4. Tuning Select & Scala Input Integration

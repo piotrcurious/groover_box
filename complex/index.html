@@ -258,6 +258,141 @@
                     </div>
                 </div>
 
+                <!-- POLYMETRIC TRACK LOOP LENGTHS CARD -->
+                <div class="panel" style="margin-bottom: 0; padding: 12px; border-color: rgba(157, 78, 221, 0.3);">
+                    <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-purple); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; margin-bottom: 10px;">INDEPENDENT POLYMETRIC LANE TRACK LENGTHS</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Kick Loop Steps</label>
+                            <select id="selectKickLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps (3/4 time)</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps (1/2 time)</option>
+                                <option value="7">7 Steps (Polymeter)</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps (Polymeter)</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Snare Loop Steps</label>
+                            <select id="selectSnareLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps</option>
+                                <option value="7">7 Steps</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Hihat Loop Steps</label>
+                            <select id="selectHihatLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps</option>
+                                <option value="7">7 Steps</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px;">
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Bass Loop Steps</label>
+                            <select id="selectBassLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps</option>
+                                <option value="7">7 Steps (Polymeter)</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps (Polymeter)</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Arp Loop Steps</label>
+                            <select id="selectArpLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps</option>
+                                <option value="7">7 Steps (Polymeter)</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps (Polymeter)</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label style="font-size: 0.7rem;">Frac Root Loop Steps</label>
+                            <select id="selectFracLength" style="padding: 4px; font-size: 0.75rem;">
+                                <option value="16" selected>16 Steps (Default)</option>
+                                <option value="15">15 Steps</option>
+                                <option value="14">14 Steps</option>
+                                <option value="13">13 Steps</option>
+                                <option value="12">12 Steps</option>
+                                <option value="11">11 Steps</option>
+                                <option value="10">10 Steps</option>
+                                <option value="9">9 Steps</option>
+                                <option value="8">8 Steps</option>
+                                <option value="7">7 Steps (Polymeter)</option>
+                                <option value="6">6 Steps</option>
+                                <option value="5">5 Steps (Polymeter)</option>
+                                <option value="4">4 Steps</option>
+                                <option value="3">3 Steps</option>
+                                <option value="2">2 Steps</option>
+                                <option value="1">1 Step</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- BAR 1 STACK -->
                 <div class="panel" style="margin-bottom: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-color: rgba(0, 240, 255, 0.3);">
                     <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-cyan); font-family: monospace; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 3px;">BAR 1 // STEPS 1-16</div>
