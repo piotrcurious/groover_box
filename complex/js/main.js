@@ -286,6 +286,11 @@ function scheduleStep(stepIndex, time) {
         const bassConflictMode = document.getElementById("selectArpBassConflict").value || "resolve-consonant";
         const gateRandomness = parseInt(document.getElementById("sliderArpGateRand").value || "0");
 
+        // Fetch new perceptual engine mode, target tension, and decay values
+        const perceptualMode = document.getElementById("selectArpPerceptualMode")?.value || "off";
+        const targetTension = parseFloat(document.getElementById("sliderArpTargetTension")?.value || "40") / 100.0;
+        const sensoryDecay = parseFloat(document.getElementById("sliderArpSensoryDecay")?.value || "5");
+
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
         const numSubdivisions = arpTempoMultiplier >= 1 ? Math.floor(arpTempoMultiplier) : 1;
@@ -338,7 +343,10 @@ function scheduleStep(stepIndex, time) {
                 jazzShape,
                 melodicConstraint,
                 playedBassHistory,
-                playedArpHistory
+                playedArpHistory,
+                perceptualMode,
+                targetTension,
+                sensoryDecay
             );
 
             if (arpRes.trigger) {
@@ -735,7 +743,9 @@ function bindUIEvents() {
         { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} },
         { id: "sliderArpFractalIntensity", lbl: "lblArpFractalIntensity", action: () => {} },
         { id: "sliderArpFractalScale", lbl: "lblArpFractalScale", action: () => {} },
-        { id: "sliderArpFractalResolutions", lbl: "lblArpFractalResolutions", action: () => {} }
+        { id: "sliderArpFractalResolutions", lbl: "lblArpFractalResolutions", action: () => {} },
+        { id: "sliderArpTargetTension", lbl: "lblArpTargetTension", action: () => {} },
+        { id: "sliderArpSensoryDecay", lbl: "lblArpSensoryDecay", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {

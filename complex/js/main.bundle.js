@@ -949,9 +949,11 @@ const midiManager = new MidiManager();
 // user-defined Fractal Roots, propagating cleanly across musical resolution targets.
 // Upgraded with classic jazz arpeggio shapes, strict/modal scale constraints, and
 // dynamic Voice History & Interdependence tracking to ensure proper voice leading and collision avoidance.
+
 class ArpGenerator {
     constructor() {
         this.index = 0;
+        this.playedHistory = []; // Tracks played arpeggio notes as { note, step } for sensory memory decay
     }
 
     /**
@@ -1013,7 +1015,10 @@ class ArpGenerator {
         jazzShape = "none",
         melodicConstraint = "scale-diatonic",
         bassHistory = [],
-        arpHistory = []
+        arpHistory = [],
+        perceptualMode = "off",
+        targetTension = 0.40,
+        sensoryDecay = 5.0
     ) {
         // --- Structural Fractal Fluency Calculation ---
         let fractalFluencyOffset = 0;
@@ -1146,55 +1151,146 @@ class ArpGenerator {
             return chordRoot + (octaveShift * 12) + interval;
         };
 
-        let degreeIndices = null;
-        if (jazzShape === "1-3-5-7") {
-            degreeIndices = [1, 3, 5, 7];
-        } else if (jazzShape === "7-5-3-1") {
-            degreeIndices = [7, 5, 3, 1];
-        } else if (jazzShape === "3-5-7-9") {
-            degreeIndices = [3, 5, 7, 9];
-        } else if (jazzShape === "9-7-5-3") {
-            degreeIndices = [9, 7, 5, 3];
-        } else if (jazzShape === "1-5-3-7") {
-            degreeIndices = [1, 5, 3, 7];
-        } else if (jazzShape === "full-stack") {
-            degreeIndices = [1, 3, 5, 7, 9, 11, 13];
-        }
+        if (perceptualMode === "psychoacoustic") {
+            // --- ITERATIVE PSYCHOACOUSTIC RESOLUTION ENGINE (TIME DOMAIN) ---
+            const basePitches = new Set();
+            notes.forEach(n => basePitches.add(n % 12));
 
-        if (degreeIndices) {
-            const shapePos = this.index % degreeIndices.length;
-            targetNote = getScaleDegreePitch(degreeIndices[shapePos]);
-        } else {
-            // Core Pattern/Arrangement Ordering Algorithms (if jazzShape is "none")
-            let noteIdx = 0;
-            if (order === "updown") {
-                const cycle = (len * 2) - 2;
-                const pos = this.index % Math.max(1, cycle);
-                noteIdx = pos < len ? pos : cycle - pos;
-            } else if (order === "brownian") {
-                const stepChange = Math.random() > 0.5 ? 1 : -1;
-                noteIdx = Math.abs((this.index + stepChange) % len);
-                this.index = noteIdx;
-            } else if (order === "funky") {
-                noteIdx = (this.index * 3 + (step % 3)) % len;
-            } else if (order === "converge") {
-                const cycleIdx = this.index % len;
-                if (cycleIdx % 2 === 0) {
-                    noteIdx = Math.floor(cycleIdx / 2);
-                } else {
-                    noteIdx = len - 1 - Math.floor(cycleIdx / 2);
+            // Diatonic scale degrees
+            [1, 3, 5, 7, 9, 11, 13].forEach(deg => {
+                const pitch = getScaleDegreePitch(deg);
+                basePitches.add(pitch % 12);
+            });
+
+            // Chromatic outside tones for rich perceptual tension targets
+            for (let pc = 0; pc < 12; pc++) {
+                if (Math.random() < 0.2) {
+                    basePitches.add(pc);
                 }
-            } else if (order === "retrograde") {
-                noteIdx = (len - 1 - (this.index % len)) % len;
-            } else if (order === "enclosure") {
-                noteIdx = this.index % len;
             }
-            targetNote = notes[noteIdx] || notes[0];
-        }
 
-        // Apply our proper Fractal Fluency pitch transpositions!
-        if (fractalIntensity > 0) {
-            targetNote += fractalFluencyOffset;
+            // Expand base pitch classes to all octaves inside limits
+            const candidates = [];
+            basePitches.forEach(pc => {
+                for (let m = pc; m <= 127; m += 12) {
+                    if (m >= minPitch && m <= maxPitch) {
+                        candidates.push(m);
+                    }
+                }
+            });
+
+            if (candidates.length === 0) {
+                notes.forEach(n => candidates.push(n));
+            }
+
+            let bestCandidate = candidates[0] || 60;
+            let lowestDev = 999;
+
+            const bassFreq = tuningSystem.getFrequencyInfo(bassNote).frequency;
+            const lastArpNote = arpHistory.length > 0 ? arpHistory[arpHistory.length - 1] : null;
+
+            candidates.forEach(cand => {
+                const candFreq = tuningSystem.getFrequencyInfo(cand).frequency;
+
+                // Plomp-Levelt Critical Band sensory roughness against active Bass
+                const bassFriction = Roughness.plompLevelt(candFreq, bassFreq);
+
+                // Sensory roughness against rolling sensory memory with exponential decay in steps
+                let totalHistRoughness = 0.0;
+                let totalWeight = 0.0;
+
+                this.playedHistory.forEach(hist => {
+                    const deltaSteps = globalSequencerStep - hist.step;
+                    if (deltaSteps >= 0) {
+                        const decayWeight = Math.exp(-deltaSteps / Math.max(0.1, sensoryDecay));
+                        const histFreq = tuningSystem.getFrequencyInfo(hist.note).frequency;
+                        const friction = Roughness.plompLevelt(candFreq, histFreq);
+                        totalHistRoughness += friction * decayWeight;
+                        totalWeight += decayWeight;
+                    }
+                });
+
+                const normHistRoughness = totalWeight > 0 ? (totalHistRoughness / totalWeight) : 0.0;
+
+                // Perceptual blend of active and historical sensory friction
+                const sensoryFriction = (bassFriction * 0.6) + (normHistRoughness * 0.4);
+
+                // Chordal Harmonicity consonance
+                const combinedNotes = [cand, ...notes];
+                const consonance = Harmonicity.calculate(combinedNotes);
+                const harmonicTension = 1.0 - consonance;
+
+                // Voice leading jump cost
+                let jumpCost = 0.0;
+                if (lastArpNote !== null) {
+                    jumpCost = Math.abs(cand - lastArpNote) / 12.0;
+                }
+
+                // Perceived tension combination
+                const perceivedTension = (sensoryFriction * 0.5) + (harmonicTension * 0.4) + (jumpCost * 0.1);
+
+                // Difference relative to user target tension
+                const scoreDev = Math.abs(perceivedTension - targetTension);
+
+                if (scoreDev < lowestDev) {
+                    lowestDev = scoreDev;
+                    bestCandidate = cand;
+                }
+            });
+
+            targetNote = bestCandidate;
+        } else {
+            // Standard arpeggiator ordering and jazz shapes
+            let degreeIndices = null;
+            if (jazzShape === "1-3-5-7") {
+                degreeIndices = [1, 3, 5, 7];
+            } else if (jazzShape === "7-5-3-1") {
+                degreeIndices = [7, 5, 3, 1];
+            } else if (jazzShape === "3-5-7-9") {
+                degreeIndices = [3, 5, 7, 9];
+            } else if (jazzShape === "9-7-5-3") {
+                degreeIndices = [9, 7, 5, 3];
+            } else if (jazzShape === "1-5-3-7") {
+                degreeIndices = [1, 5, 3, 7];
+            } else if (jazzShape === "full-stack") {
+                degreeIndices = [1, 3, 5, 7, 9, 11, 13];
+            }
+
+            if (degreeIndices) {
+                const shapePos = this.index % degreeIndices.length;
+                targetNote = getScaleDegreePitch(degreeIndices[shapePos]);
+            } else {
+                // Core Pattern/Arrangement Ordering Algorithms (if jazzShape is "none")
+                let noteIdx = 0;
+                if (order === "updown") {
+                    const cycle = (len * 2) - 2;
+                    const pos = this.index % Math.max(1, cycle);
+                    noteIdx = pos < len ? pos : cycle - pos;
+                } else if (order === "brownian") {
+                    const stepChange = Math.random() > 0.5 ? 1 : -1;
+                    noteIdx = Math.abs((this.index + stepChange) % len);
+                    this.index = noteIdx;
+                } else if (order === "funky") {
+                    noteIdx = (this.index * 3 + (step % 3)) % len;
+                } else if (order === "converge") {
+                    const cycleIdx = this.index % len;
+                    if (cycleIdx % 2 === 0) {
+                        noteIdx = Math.floor(cycleIdx / 2);
+                    } else {
+                        noteIdx = len - 1 - Math.floor(cycleIdx / 2);
+                    }
+                } else if (order === "retrograde") {
+                    noteIdx = (len - 1 - (this.index % len)) % len;
+                } else if (order === "enclosure") {
+                    noteIdx = this.index % len;
+                }
+                targetNote = notes[noteIdx] || notes[0];
+            }
+
+            // Apply our proper Fractal Fluency pitch transpositions!
+            if (fractalIntensity > 0) {
+                targetNote += fractalFluencyOffset;
+            }
         }
 
         // --- POLYPHONIC INTERDEPENDENCE & VOICE HISTORY RESOLUTION ---
@@ -1405,6 +1501,14 @@ class ArpGenerator {
         gateModifier = Math.max(0.1, Math.min(2.0, gateModifier));
 
         this.index++;
+
+        // Add note and step coordinates to the time-domain sensory memory rolling buffer
+        if (targetNote >= minPitch && targetNote <= maxPitch) {
+            this.playedHistory.push({ note: targetNote, step: globalSequencerStep });
+            if (this.playedHistory.length > 32) {
+                this.playedHistory.shift();
+            }
+        }
 
         return {
             note: targetNote,
@@ -2423,6 +2527,11 @@ function scheduleStep(stepIndex, time) {
         const bassConflictMode = document.getElementById("selectArpBassConflict").value || "resolve-consonant";
         const gateRandomness = parseInt(document.getElementById("sliderArpGateRand").value || "0");
 
+        // Fetch new perceptual engine mode, target tension, and decay values
+        const perceptualMode = document.getElementById("selectArpPerceptualMode")?.value || "off";
+        const targetTension = parseFloat(document.getElementById("sliderArpTargetTension")?.value || "40") / 100.0;
+        const sensoryDecay = parseFloat(document.getElementById("sliderArpSensoryDecay")?.value || "5");
+
         // Number of sub-notes to schedule based on our tempo multiplier
         // An arpTempoMultiplier of 1 trigger plays 1 note. 2 plays 2 notes, 3 plays 3, etc. 0.5 plays half-time.
         const numSubdivisions = arpTempoMultiplier >= 1 ? Math.floor(arpTempoMultiplier) : 1;
@@ -2475,7 +2584,10 @@ function scheduleStep(stepIndex, time) {
                 jazzShape,
                 melodicConstraint,
                 playedBassHistory,
-                playedArpHistory
+                playedArpHistory,
+                perceptualMode,
+                targetTension,
+                sensoryDecay
             );
 
             if (arpRes.trigger) {
@@ -2872,7 +2984,9 @@ function bindUIEvents() {
         { id: "sliderArpGateRand", lbl: "lblArpGateRand", action: () => {} },
         { id: "sliderArpFractalIntensity", lbl: "lblArpFractalIntensity", action: () => {} },
         { id: "sliderArpFractalScale", lbl: "lblArpFractalScale", action: () => {} },
-        { id: "sliderArpFractalResolutions", lbl: "lblArpFractalResolutions", action: () => {} }
+        { id: "sliderArpFractalResolutions", lbl: "lblArpFractalResolutions", action: () => {} },
+        { id: "sliderArpTargetTension", lbl: "lblArpTargetTension", action: () => {} },
+        { id: "sliderArpSensoryDecay", lbl: "lblArpSensoryDecay", action: () => {} }
     ];
 
     slidersMap.forEach(slider => {
