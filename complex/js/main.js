@@ -29,6 +29,22 @@ let lastActiveChord = null;
 
 // Initialization routine
 async function initApp() {
+    // Populate all 6 loop length dropdowns dynamically with options from 64 down to 1 steps, defaulting to 64
+    const loopLengthDropdowns = ["selectKickLength", "selectSnareLength", "selectHihatLength", "selectBassLength", "selectArpLength", "selectFracLength"];
+    loopLengthDropdowns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerHTML = "";
+            for (let steps = 64; steps >= 1; steps--) {
+                const opt = document.createElement("option");
+                opt.value = steps;
+                opt.innerText = `${steps} Steps ${steps === 64 ? "(Default / 4-Bar)" : steps === 16 ? "(1-Bar)" : ""}`;
+                if (steps === 64) opt.selected = true;
+                el.appendChild(opt);
+            }
+        }
+    });
+
     // 1. Setup Audio & effects
     const ctx = await audioEngine.init();
 
@@ -198,10 +214,15 @@ function scheduleStep(stepIndex, time) {
 
         // Highlight playing timeline slot
         document.querySelectorAll(".timeline-chord").forEach(el => el.classList.remove("current-playing"));
+        const container = document.getElementById("timelineContainer");
         const slotEl = document.getElementById(`timeline-slot-${progressionBarIndex}`);
-        if (slotEl) {
+        if (slotEl && container) {
             slotEl.classList.add("current-playing");
-            slotEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+            // Locally center the active slot in the timeline container horizontally without window scrolling
+            const containerWidth = container.clientWidth;
+            const slotOffsetLeft = slotEl.offsetLeft;
+            const slotWidth = slotEl.clientWidth;
+            container.scrollLeft = slotOffsetLeft - (containerWidth / 2) + (slotWidth / 2);
         }
 
         document.getElementById("lblActiveChord").innerText = `Active: ${activeChord.name}`;
