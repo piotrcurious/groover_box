@@ -16,6 +16,17 @@ export class TuningSystem {
         this.baseMidi = midi;
     }
 
+    getStepsPerOctave() {
+        switch (this.system) {
+            case "19tet": return 19;
+            case "24tet": return 24;
+            case "31tet": return 31;
+            case "53tet": return 53;
+            case "scala": return this.customScala ? this.customScala.size : 12;
+            default: return 12; // 12tet, just, pythagorean, 22shruti
+        }
+    }
+
     /**
      * Parses a Scala scale definition (.scl format) string and loads it.
      * @param {string} sclText - Scala text payload

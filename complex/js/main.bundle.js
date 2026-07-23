@@ -264,6 +264,17 @@ class TuningSystem {
         this.baseMidi = midi;
     }
 
+    getStepsPerOctave() {
+        switch (this.system) {
+            case "19tet": return 19;
+            case "24tet": return 24;
+            case "31tet": return 31;
+            case "53tet": return 53;
+            case "scala": return this.customScala ? this.customScala.size : 12;
+            default: return 12; // 12tet, just, pythagorean, 22shruti
+        }
+    }
+
     /**
      * Parses a Scala scale definition (.scl format) string and loads it.
      * @param {string} sclText - Scala text payload
@@ -1123,6 +1134,7 @@ class ArpGenerator {
         const notes = chord.notes;
         const len = notes.length;
         let targetNote = notes[0];
+        const stepsPerOctave = tuningSystem.getStepsPerOctave();
 
         // --- Algorithmic Scale/Mode Construction for Dynamic Arpeggio Shapes ---
         const chordRoot = notes[0];
@@ -1147,23 +1159,28 @@ class ArpGenerator {
             const scaleDegreeZeroIndexed = deg - 1;
             const octaveShift = Math.floor(scaleDegreeZeroIndexed / scaleIntervals.length);
             const scaleIndex = scaleDegreeZeroIndexed % scaleIntervals.length;
-            const interval = scaleIntervals[scaleIndex];
-            return chordRoot + (octaveShift * 12) + interval;
+            const standardInterval = scaleIntervals[scaleIndex];
+            const interval = Math.round((standardInterval / 12.0) * stepsPerOctave);
+            return chordRoot + (octaveShift * stepsPerOctave) + interval;
         };
+
+        const nativeScaleIntervals = scaleIntervals.map(interval => {
+            return Math.round((interval / 12.0) * stepsPerOctave);
+        });
 
         if (perceptualMode === "psychoacoustic") {
             // --- ITERATIVE PSYCHOACOUSTIC RESOLUTION ENGINE (TIME DOMAIN) ---
             const basePitches = new Set();
-            notes.forEach(n => basePitches.add(n % 12));
+            notes.forEach(n => basePitches.add(n % stepsPerOctave));
 
             // Diatonic scale degrees
             [1, 3, 5, 7, 9, 11, 13].forEach(deg => {
                 const pitch = getScaleDegreePitch(deg);
-                basePitches.add(pitch % 12);
+                basePitches.add(pitch % stepsPerOctave);
             });
 
             // Chromatic outside tones for rich perceptual tension targets
-            for (let pc = 0; pc < 12; pc++) {
+            for (let pc = 0; pc < stepsPerOctave; pc++) {
                 if (Math.random() < 0.2) {
                     basePitches.add(pc);
                 }
@@ -1172,7 +1189,7 @@ class ArpGenerator {
             // Expand base pitch classes to all octaves inside limits
             const candidates = [];
             basePitches.forEach(pc => {
-                for (let m = pc; m <= 127; m += 12) {
+                for (let m = pc; m <= 127; m += stepsPerOctave) {
                     if (m >= minPitch && m <= maxPitch) {
                         candidates.push(m);
                     }
@@ -1223,7 +1240,7 @@ class ArpGenerator {
                 // Voice leading jump cost
                 let jumpCost = 0.0;
                 if (lastArpNote !== null) {
-                    jumpCost = Math.abs(cand - lastArpNote) / 12.0;
+                    jumpCost = Math.abs(cand - lastArpNote) / stepsPerOctave;
                 }
 
                 // Perceived tension combination
@@ -1300,19 +1317,20 @@ class ArpGenerator {
             // A. Voice Crossing Avoidance
             // If the arpeggiator's register starts dipping below the active bass pitch,
             // shift it up by octaves to maintain proper polyphonic voice register separation.
-            while (targetNote <= lastBass + 2) {
-                targetNote += 12;
+            const minBassSpacing = Math.round((2 / 12.0) * stepsPerOctave);
+            while (targetNote <= lastBass + minBassSpacing) {
+                targetNote += stepsPerOctave;
             }
 
             // B. Unison & Collision Avoidance
             // If the arpeggio target matches the exact pitch of the recently played bass,
             // shift the arpeggiator to a beautiful upper extension of the scale (9th, 11th, or 13th)
-            if (targetNote === lastBass || (targetNote % 12 === lastBass % 12)) {
+            if (targetNote === lastBass || (targetNote % stepsPerOctave === lastBass % stepsPerOctave)) {
                 // Snap up to the nearest diatonic 9th (index 4 of scale) or 11th (index 5)
                 const extensionDegree = notes.length >= 5 ? 9 : 5;
                 targetNote = getScaleDegreePitch(extensionDegree);
                 while (targetNote <= lastBass) {
-                    targetNote += 12;
+                    targetNote += stepsPerOctave;
                 }
             }
         }
@@ -1323,9 +1341,10 @@ class ArpGenerator {
             // C. Smooth Conjunct Motion & Voice Attraction
             // If the arpeggio note jumps too wide compared to the previous arpeggiator voice output (e.g. > 15 semitones),
             // pull it towards the previous octave to establish seamless, fluid conjunct voice leading.
+            const maxJumpDist = Math.round((15 / 12.0) * stepsPerOctave);
             const jumpDist = targetNote - lastArp;
-            if (Math.abs(jumpDist) > 15) {
-                const octaveShift = Math.round(jumpDist / 12) * 12;
+            if (Math.abs(jumpDist) > maxJumpDist) {
+                const octaveShift = Math.round(jumpDist / stepsPerOctave) * stepsPerOctave;
                 const shiftedNote = targetNote - octaveShift;
                 if (shiftedNote >= minPitch && shiftedNote <= maxPitch) {
                     targetNote = shiftedNote;
@@ -1345,14 +1364,14 @@ class ArpGenerator {
 
         // 4. Open Voicing Interval Spread Transpositions
         if (spread === 1) {
-            if (this.index % 2 !== 0) targetNote += 7;
+            if (this.index % 2 !== 0) targetNote += Math.round((7 / 12.0) * stepsPerOctave);
         } else if (spread === 2) {
-            if (this.index % 2 !== 0) targetNote += 12;
+            if (this.index % 2 !== 0) targetNote += stepsPerOctave;
         } else if (spread === 3) {
             if (this.index % 2 !== 0) {
-                targetNote += 19;
+                targetNote += stepsPerOctave + Math.round((7 / 12.0) * stepsPerOctave);
             } else {
-                targetNote += 7;
+                targetNote += Math.round((7 / 12.0) * stepsPerOctave);
             }
         }
 
@@ -1369,28 +1388,29 @@ class ArpGenerator {
             octOffset = 0;
         }
 
-        targetNote += octOffset * 12;
+        targetNote += octOffset * stepsPerOctave;
 
         // 6. Bass-Contextual Harmonic Filtering & Advanced Conflict Resolution Strategies
         if (bassNote > 0 && bassConflictMode !== "ignore") {
             const diff = Math.abs(targetNote - bassNote);
 
             if (bassConflictMode === "shift-octave") {
-                while (targetNote <= bassNote + 12) {
-                    targetNote += 12;
+                while (targetNote <= bassNote + stepsPerOctave) {
+                    targetNote += stepsPerOctave;
                 }
             } else if (bassConflictMode === "resolve-consonant") {
-                const intervalDiff = diff % 12;
-                if (intervalDiff === 1) {
-                    targetNote += 1;
-                } else if (intervalDiff === 6) {
-                    targetNote += 1;
-                } else if (intervalDiff === 11) {
-                    targetNote += 1;
+                const intervalDiff = diff % stepsPerOctave;
+                const m2Offset = Math.round((1 / 12.0) * stepsPerOctave);
+                const tritoneOffset = Math.round((6 / 12.0) * stepsPerOctave);
+                const M7Offset = Math.round((11 / 12.0) * stepsPerOctave);
+                if (intervalDiff === m2Offset || intervalDiff === tritoneOffset || intervalDiff === M7Offset) {
+                    targetNote += m2Offset;
                 }
             } else if (bassConflictMode === "drop-note") {
-                const intervalDiff = diff % 12;
-                if (diff < 12 || intervalDiff === 1 || intervalDiff === 2) {
+                const intervalDiff = diff % stepsPerOctave;
+                const m2Offset = Math.round((1 / 12.0) * stepsPerOctave);
+                const M2Offset = Math.round((2 / 12.0) * stepsPerOctave);
+                if (diff < stepsPerOctave || intervalDiff === m2Offset || intervalDiff === M2Offset) {
                     this.index++;
                     return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
                 }
@@ -1399,10 +1419,10 @@ class ArpGenerator {
 
         // 7. Strict Pitch Limits Clamping
         while (targetNote < minPitch) {
-            targetNote += 12;
+            targetNote += stepsPerOctave;
         }
         while (targetNote > maxPitch) {
-            targetNote -= 12;
+            targetNote -= stepsPerOctave;
         }
         targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
 
@@ -1411,7 +1431,7 @@ class ArpGenerator {
             let closestNote = notes[0];
             let closestDist = 999;
             for (let i = 0; i < 4; i++) {
-                const octShift = (i - 1) * 12;
+                const octShift = (i - 1) * stepsPerOctave;
                 for (let k = 0; k < notes.length; k++) {
                     const candidate = notes[k] + octShift;
                     const d = Math.abs(targetNote - candidate);
@@ -1423,26 +1443,26 @@ class ArpGenerator {
             }
             targetNote = closestNote;
         } else if (melodicConstraint === "scale-diatonic" && notes.length > 0) {
-            const currentPitchClass = targetNote % 12;
-            let bestSnap = scaleIntervals[0];
+            const currentPitchClass = targetNote % stepsPerOctave;
+            let bestSnap = nativeScaleIntervals[0];
             let bestDist = 999;
-            for (let j = 0; j < scaleIntervals.length; j++) {
-                const candidateClass = (chordRoot + scaleIntervals[j]) % 12;
+            for (let j = 0; j < nativeScaleIntervals.length; j++) {
+                const candidateClass = (chordRoot + nativeScaleIntervals[j]) % stepsPerOctave;
                 let d = Math.abs(currentPitchClass - candidateClass);
-                if (d > 6) d = 12 - d;
+                if (d > (stepsPerOctave / 2)) d = stepsPerOctave - d;
                 if (d < bestDist) {
                     bestDist = d;
                     bestSnap = candidateClass;
                 }
             }
-            const octaveOffset = Math.floor(targetNote / 12) * 12;
+            const octaveOffset = Math.floor(targetNote / stepsPerOctave) * stepsPerOctave;
             targetNote = octaveOffset + bestSnap;
         }
 
         // 9. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (melodicConstraint === "chromatic" && Math.random() * 100 < mutationRate) {
-            const mutationInterval = Math.random() > 0.5 ? 2 : -1;
+            const mutationInterval = Math.random() > 0.5 ? Math.round((2 / 12.0) * stepsPerOctave) : -1;
             const mutatedCandidate = targetNote + mutationInterval;
             if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
                 targetNote = mutatedCandidate;
@@ -1945,6 +1965,7 @@ const chordDictionary = {
     "maj7sharp11": [0, 4, 7, 11, 14, 18] // Lydian sound
 };
 
+
 /**
  * Returns MIDI note numbers matching a given root and chord type
  * @param {number} root - MIDI note number representing the chord root
@@ -1953,7 +1974,13 @@ const chordDictionary = {
  */
 function buildChord(root, quality) {
     const offsets = chordDictionary[quality] || [0, 4, 7];
-    return offsets.map(offset => root + offset);
+    const stepsPerOctave = tuningSystem.getStepsPerOctave();
+
+    // Scale standard 12-TET offsets dynamically to the active temperament's native steps
+    return offsets.map(offset => {
+        const microtonalOffset = Math.round((offset / 12.0) * stepsPerOctave);
+        return root + microtonalOffset;
+    });
 }
 
 
@@ -1961,6 +1988,7 @@ function buildChord(root, quality) {
 
 
 // --- MODULE: complex/js/bass/walkingBass.js ---
+
 // Generative walking basslines using chromatic enclosures, passing tones, and bebop scales
 class WalkingBass {
     /**
@@ -1976,9 +2004,10 @@ class WalkingBass {
 
         const chordNotes = chord.notes;
         const root = chordNotes[0];
+        const stepsPerOctave = tuningSystem.getStepsPerOctave();
 
-        // Define octave drop for walking bass ranges
-        const bassRoot = root - 24;
+        // Define octave drop dynamically based on native steps per octave
+        const bassRoot = root - (2 * stepsPerOctave);
 
         // On the downbeat (step 0), always establish structural roots
         if (step === 0) {
@@ -1987,20 +2016,22 @@ class WalkingBass {
 
         // On step 8 (halfway), establish the perfect fifth or active root
         if (step === 8) {
-            const fifth = chordNotes[2] ? chordNotes[2] - 24 : bassRoot + 7;
+            const fifthInterval = Math.round((7 / 12.0) * stepsPerOctave);
+            const fifth = chordNotes[2] ? chordNotes[2] - (2 * stepsPerOctave) : bassRoot + fifthInterval;
             return Math.random() * 100 < rootBias ? fifth : bassRoot;
         }
 
         // Final step of bar (step 15): solve transition to next chord's root with chromatic enclosure
         if (step === 15 && nextChord && nextChord.notes) {
-            const targetRoot = nextChord.notes[0] - 24;
+            const targetRoot = nextChord.notes[0] - (2 * stepsPerOctave);
 
             if (style === "enclosure") {
                 // Return a half-step above or below the target root (chromatic enclosure)
                 return Math.random() > 0.5 ? targetRoot + 1 : targetRoot - 1;
             } else if (style === "tritone") {
                 // Approaching via tritone interval (b5 resolution)
-                return targetRoot + 6;
+                const tritoneInterval = Math.round((6 / 12.0) * stepsPerOctave);
+                return targetRoot + tritoneInterval;
             } else {
                 // Standard leading tone (half-step below)
                 return targetRoot - 1;
@@ -2010,28 +2041,34 @@ class WalkingBass {
         // Mid-beats steps: traverse chord scales using chosen stylistic algorithms
         if (style === "bebop") {
             // Bebop scale walking: construct steps relative to chord's root, moving up/down dynamically
-            const bebopOffsets = [0, 2, 4, 5, 7, 8, 9, 11];
+            const standardOffsets = [0, 2, 4, 5, 7, 8, 9, 11];
+            const bebopOffsets = standardOffsets.map(offset => Math.round((offset / 12.0) * stepsPerOctave));
             // Walk up or down based on step number
             const dir = (step % 8 < 4) ? 1 : -1;
             const offsetIdx = Math.floor(step * 1.5) % bebopOffsets.length;
             const note = bassRoot + (dir * bebopOffsets[offsetIdx]);
 
-            // Constrain bass note to realistic frequency range (midi 28 to 52)
-            return Math.max(28, Math.min(52, note));
+            // Constrain bass note to realistic frequency range (MIDI C1 to C3 equivalents)
+            const minBass = 60 - (2 * stepsPerOctave);
+            const maxBass = 60;
+            return Math.max(minBass, Math.min(maxBass, note));
         }
 
         if (style === "diminished") {
-            // Half-whole diminished: 0, 1, 3, 4, 6, 7, 9, 10
-            const dimOffsets = [0, 1, 3, 4, 6, 7, 9, 10];
+            const standardOffsets = [0, 1, 3, 4, 6, 7, 9, 10];
+            const dimOffsets = standardOffsets.map(offset => Math.round((offset / 12.0) * stepsPerOctave));
             const dir = (step % 6 < 3) ? 1 : -1;
             const offsetIdx = step % dimOffsets.length;
             const note = bassRoot + (dir * dimOffsets[offsetIdx]);
-            return Math.max(28, Math.min(52, note));
+
+            const minBass = 60 - (2 * stepsPerOctave);
+            const maxBass = 60;
+            return Math.max(minBass, Math.min(maxBass, note));
         }
 
         // Fallback default: select chord notes walk (root, third, fifth, seventh) with small octave shifts
         const noteIdx = Math.floor((step / 4) % chordNotes.length);
-        const selectedNote = chordNotes[noteIdx] - 24;
+        const selectedNote = chordNotes[noteIdx] - (2 * stepsPerOctave);
 
         return selectedNote;
     }

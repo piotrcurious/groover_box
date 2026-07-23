@@ -16,6 +16,8 @@ export const chordDictionary = {
     "maj7sharp11": [0, 4, 7, 11, 14, 18] // Lydian sound
 };
 
+import { tuningSystem } from "../microtonal/temperament.js";
+
 /**
  * Returns MIDI note numbers matching a given root and chord type
  * @param {number} root - MIDI note number representing the chord root
@@ -24,7 +26,13 @@ export const chordDictionary = {
  */
 export function buildChord(root, quality) {
     const offsets = chordDictionary[quality] || [0, 4, 7];
-    return offsets.map(offset => root + offset);
+    const stepsPerOctave = tuningSystem.getStepsPerOctave();
+
+    // Scale standard 12-TET offsets dynamically to the active temperament's native steps
+    return offsets.map(offset => {
+        const microtonalOffset = Math.round((offset / 12.0) * stepsPerOctave);
+        return root + microtonalOffset;
+    });
 }
 
 export default chordDictionary;

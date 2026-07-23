@@ -181,6 +181,7 @@ export class ArpGenerator {
         const notes = chord.notes;
         const len = notes.length;
         let targetNote = notes[0];
+        const stepsPerOctave = tuningSystem.getStepsPerOctave();
 
         // --- Algorithmic Scale/Mode Construction for Dynamic Arpeggio Shapes ---
         const chordRoot = notes[0];
@@ -205,23 +206,28 @@ export class ArpGenerator {
             const scaleDegreeZeroIndexed = deg - 1;
             const octaveShift = Math.floor(scaleDegreeZeroIndexed / scaleIntervals.length);
             const scaleIndex = scaleDegreeZeroIndexed % scaleIntervals.length;
-            const interval = scaleIntervals[scaleIndex];
-            return chordRoot + (octaveShift * 12) + interval;
+            const standardInterval = scaleIntervals[scaleIndex];
+            const interval = Math.round((standardInterval / 12.0) * stepsPerOctave);
+            return chordRoot + (octaveShift * stepsPerOctave) + interval;
         };
+
+        const nativeScaleIntervals = scaleIntervals.map(interval => {
+            return Math.round((interval / 12.0) * stepsPerOctave);
+        });
 
         if (perceptualMode === "psychoacoustic") {
             // --- ITERATIVE PSYCHOACOUSTIC RESOLUTION ENGINE (TIME DOMAIN) ---
             const basePitches = new Set();
-            notes.forEach(n => basePitches.add(n % 12));
+            notes.forEach(n => basePitches.add(n % stepsPerOctave));
 
             // Diatonic scale degrees
             [1, 3, 5, 7, 9, 11, 13].forEach(deg => {
                 const pitch = getScaleDegreePitch(deg);
-                basePitches.add(pitch % 12);
+                basePitches.add(pitch % stepsPerOctave);
             });
 
             // Chromatic outside tones for rich perceptual tension targets
-            for (let pc = 0; pc < 12; pc++) {
+            for (let pc = 0; pc < stepsPerOctave; pc++) {
                 if (Math.random() < 0.2) {
                     basePitches.add(pc);
                 }
@@ -230,7 +236,7 @@ export class ArpGenerator {
             // Expand base pitch classes to all octaves inside limits
             const candidates = [];
             basePitches.forEach(pc => {
-                for (let m = pc; m <= 127; m += 12) {
+                for (let m = pc; m <= 127; m += stepsPerOctave) {
                     if (m >= minPitch && m <= maxPitch) {
                         candidates.push(m);
                     }
@@ -281,7 +287,7 @@ export class ArpGenerator {
                 // Voice leading jump cost
                 let jumpCost = 0.0;
                 if (lastArpNote !== null) {
-                    jumpCost = Math.abs(cand - lastArpNote) / 12.0;
+                    jumpCost = Math.abs(cand - lastArpNote) / stepsPerOctave;
                 }
 
                 // Perceived tension combination
@@ -358,19 +364,20 @@ export class ArpGenerator {
             // A. Voice Crossing Avoidance
             // If the arpeggiator's register starts dipping below the active bass pitch,
             // shift it up by octaves to maintain proper polyphonic voice register separation.
-            while (targetNote <= lastBass + 2) {
-                targetNote += 12;
+            const minBassSpacing = Math.round((2 / 12.0) * stepsPerOctave);
+            while (targetNote <= lastBass + minBassSpacing) {
+                targetNote += stepsPerOctave;
             }
 
             // B. Unison & Collision Avoidance
             // If the arpeggio target matches the exact pitch of the recently played bass,
             // shift the arpeggiator to a beautiful upper extension of the scale (9th, 11th, or 13th)
-            if (targetNote === lastBass || (targetNote % 12 === lastBass % 12)) {
+            if (targetNote === lastBass || (targetNote % stepsPerOctave === lastBass % stepsPerOctave)) {
                 // Snap up to the nearest diatonic 9th (index 4 of scale) or 11th (index 5)
                 const extensionDegree = notes.length >= 5 ? 9 : 5;
                 targetNote = getScaleDegreePitch(extensionDegree);
                 while (targetNote <= lastBass) {
-                    targetNote += 12;
+                    targetNote += stepsPerOctave;
                 }
             }
         }
@@ -381,9 +388,10 @@ export class ArpGenerator {
             // C. Smooth Conjunct Motion & Voice Attraction
             // If the arpeggio note jumps too wide compared to the previous arpeggiator voice output (e.g. > 15 semitones),
             // pull it towards the previous octave to establish seamless, fluid conjunct voice leading.
+            const maxJumpDist = Math.round((15 / 12.0) * stepsPerOctave);
             const jumpDist = targetNote - lastArp;
-            if (Math.abs(jumpDist) > 15) {
-                const octaveShift = Math.round(jumpDist / 12) * 12;
+            if (Math.abs(jumpDist) > maxJumpDist) {
+                const octaveShift = Math.round(jumpDist / stepsPerOctave) * stepsPerOctave;
                 const shiftedNote = targetNote - octaveShift;
                 if (shiftedNote >= minPitch && shiftedNote <= maxPitch) {
                     targetNote = shiftedNote;
@@ -403,14 +411,14 @@ export class ArpGenerator {
 
         // 4. Open Voicing Interval Spread Transpositions
         if (spread === 1) {
-            if (this.index % 2 !== 0) targetNote += 7;
+            if (this.index % 2 !== 0) targetNote += Math.round((7 / 12.0) * stepsPerOctave);
         } else if (spread === 2) {
-            if (this.index % 2 !== 0) targetNote += 12;
+            if (this.index % 2 !== 0) targetNote += stepsPerOctave;
         } else if (spread === 3) {
             if (this.index % 2 !== 0) {
-                targetNote += 19;
+                targetNote += stepsPerOctave + Math.round((7 / 12.0) * stepsPerOctave);
             } else {
-                targetNote += 7;
+                targetNote += Math.round((7 / 12.0) * stepsPerOctave);
             }
         }
 
@@ -427,28 +435,29 @@ export class ArpGenerator {
             octOffset = 0;
         }
 
-        targetNote += octOffset * 12;
+        targetNote += octOffset * stepsPerOctave;
 
         // 6. Bass-Contextual Harmonic Filtering & Advanced Conflict Resolution Strategies
         if (bassNote > 0 && bassConflictMode !== "ignore") {
             const diff = Math.abs(targetNote - bassNote);
 
             if (bassConflictMode === "shift-octave") {
-                while (targetNote <= bassNote + 12) {
-                    targetNote += 12;
+                while (targetNote <= bassNote + stepsPerOctave) {
+                    targetNote += stepsPerOctave;
                 }
             } else if (bassConflictMode === "resolve-consonant") {
-                const intervalDiff = diff % 12;
-                if (intervalDiff === 1) {
-                    targetNote += 1;
-                } else if (intervalDiff === 6) {
-                    targetNote += 1;
-                } else if (intervalDiff === 11) {
-                    targetNote += 1;
+                const intervalDiff = diff % stepsPerOctave;
+                const m2Offset = Math.round((1 / 12.0) * stepsPerOctave);
+                const tritoneOffset = Math.round((6 / 12.0) * stepsPerOctave);
+                const M7Offset = Math.round((11 / 12.0) * stepsPerOctave);
+                if (intervalDiff === m2Offset || intervalDiff === tritoneOffset || intervalDiff === M7Offset) {
+                    targetNote += m2Offset;
                 }
             } else if (bassConflictMode === "drop-note") {
-                const intervalDiff = diff % 12;
-                if (diff < 12 || intervalDiff === 1 || intervalDiff === 2) {
+                const intervalDiff = diff % stepsPerOctave;
+                const m2Offset = Math.round((1 / 12.0) * stepsPerOctave);
+                const M2Offset = Math.round((2 / 12.0) * stepsPerOctave);
+                if (diff < stepsPerOctave || intervalDiff === m2Offset || intervalDiff === M2Offset) {
                     this.index++;
                     return { note: 60, velocity: 0, isGhost: false, trigger: false, gateModifier: 1.0 };
                 }
@@ -457,10 +466,10 @@ export class ArpGenerator {
 
         // 7. Strict Pitch Limits Clamping
         while (targetNote < minPitch) {
-            targetNote += 12;
+            targetNote += stepsPerOctave;
         }
         while (targetNote > maxPitch) {
-            targetNote -= 12;
+            targetNote -= stepsPerOctave;
         }
         targetNote = Math.max(minPitch, Math.min(maxPitch, targetNote));
 
@@ -469,7 +478,7 @@ export class ArpGenerator {
             let closestNote = notes[0];
             let closestDist = 999;
             for (let i = 0; i < 4; i++) {
-                const octShift = (i - 1) * 12;
+                const octShift = (i - 1) * stepsPerOctave;
                 for (let k = 0; k < notes.length; k++) {
                     const candidate = notes[k] + octShift;
                     const d = Math.abs(targetNote - candidate);
@@ -481,26 +490,26 @@ export class ArpGenerator {
             }
             targetNote = closestNote;
         } else if (melodicConstraint === "scale-diatonic" && notes.length > 0) {
-            const currentPitchClass = targetNote % 12;
-            let bestSnap = scaleIntervals[0];
+            const currentPitchClass = targetNote % stepsPerOctave;
+            let bestSnap = nativeScaleIntervals[0];
             let bestDist = 999;
-            for (let j = 0; j < scaleIntervals.length; j++) {
-                const candidateClass = (chordRoot + scaleIntervals[j]) % 12;
+            for (let j = 0; j < nativeScaleIntervals.length; j++) {
+                const candidateClass = (chordRoot + nativeScaleIntervals[j]) % stepsPerOctave;
                 let d = Math.abs(currentPitchClass - candidateClass);
-                if (d > 6) d = 12 - d;
+                if (d > (stepsPerOctave / 2)) d = stepsPerOctave - d;
                 if (d < bestDist) {
                     bestDist = d;
                     bestSnap = candidateClass;
                 }
             }
-            const octaveOffset = Math.floor(targetNote / 12) * 12;
+            const octaveOffset = Math.floor(targetNote / stepsPerOctave) * stepsPerOctave;
             targetNote = octaveOffset + bestSnap;
         }
 
         // 9. Passing Tone Mutation Generator (Dynamic Melodic Tension)
         let isMutated = false;
         if (melodicConstraint === "chromatic" && Math.random() * 100 < mutationRate) {
-            const mutationInterval = Math.random() > 0.5 ? 2 : -1;
+            const mutationInterval = Math.random() > 0.5 ? Math.round((2 / 12.0) * stepsPerOctave) : -1;
             const mutatedCandidate = targetNote + mutationInterval;
             if (mutatedCandidate >= minPitch && mutatedCandidate <= maxPitch) {
                 targetNote = mutatedCandidate;
