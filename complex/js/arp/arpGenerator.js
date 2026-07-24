@@ -76,7 +76,8 @@ export class ArpGenerator {
         arpHistory = [],
         perceptualMode = "off",
         targetTension = 0.40,
-        sensoryDecay = 5.0
+        sensoryDecay = 5.0,
+        attractionStrength = 0.70
     ) {
         // --- Structural Fractal Fluency Calculation ---
         let fractalFluencyOffset = 0;
@@ -323,6 +324,70 @@ export class ArpGenerator {
             if (degreeIndices) {
                 const shapePos = this.index % degreeIndices.length;
                 targetNote = getScaleDegreePitch(degreeIndices[shapePos]);
+            } else if (order === "tonal-gravity") {
+                // --- TIME-DOMAIN TONAL GRAVITY WALK RESOLVER ---
+                const lastArp = arpHistory.length > 0 ? arpHistory[arpHistory.length - 1] : minPitch + Math.round(stepsPerOctave * 1.5);
+                const candidates = [];
+                for (let d = -7; d <= 7; d++) {
+                    const cand = lastArp + d;
+                    if (cand >= minPitch && cand <= maxPitch) {
+                        candidates.push(cand);
+                    }
+                }
+                if (candidates.length === 0) {
+                    candidates.push(notes[0]);
+                }
+
+                let bestCandidate = candidates[0];
+                let highestWeight = -999;
+
+                candidates.forEach(cand => {
+                    const pcClass = cand % stepsPerOctave;
+
+                    let isChordTone = false;
+                    notes.forEach(n => {
+                        if (cand % stepsPerOctave === n % stepsPerOctave) {
+                            isChordTone = true;
+                        }
+                    });
+
+                    let isDiatonic = false;
+                    nativeScaleIntervals.forEach(interval => {
+                        if (pcClass === (chordRoot + interval) % stepsPerOctave) {
+                            isDiatonic = true;
+                        }
+                    });
+
+                    let stability = 0.1;
+                    if (isChordTone) {
+                        stability = 1.0;
+                    } else if (isDiatonic) {
+                        stability = 0.6;
+                    }
+
+                    let resolutionReward = 0.0;
+                    const isLastArpChordTone = notes.some(n => lastArp % stepsPerOctave === n % stepsPerOctave);
+                    if (!isLastArpChordTone) {
+                        const distToLast = Math.abs(cand - lastArp);
+                        if (isChordTone && distToLast <= 2 && distToLast > 0) {
+                            resolutionReward = 1.0 * attractionStrength;
+                        }
+                    }
+
+                    const leapPenalty = Math.abs(cand - lastArp) / stepsPerOctave;
+                    const selectionWeight = (stability * 0.3) + (resolutionReward * 0.5) - (leapPenalty * 0.2);
+
+                    if (selectionWeight > highestWeight) {
+                        highestWeight = selectionWeight;
+                        bestCandidate = cand;
+                    }
+                });
+
+                if (Math.random() < 0.3 && candidates.length > 0) {
+                    targetNote = candidates[Math.floor(Math.random() * candidates.length)];
+                } else {
+                    targetNote = bestCandidate;
+                }
             } else {
                 // Core Pattern/Arrangement Ordering Algorithms (if jazzShape is "none")
                 let noteIdx = 0;

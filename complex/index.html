@@ -447,6 +447,7 @@
                         <label>Arp Ordering</label>
                         <select id="selectArpOrder">
                             <option value="updown" selected>Up & Down Walk</option>
+                            <option value="tonal-gravity">Tonal Gravity Walk</option>
                             <option value="funky">Funky Disjointed Index</option>
                             <option value="brownian">Brownian Step Walk</option>
                             <option value="converge">Converge / Diverge</option>
@@ -620,6 +621,12 @@
                     <div class="control-group" style="width: 100%;">
                         <label>Sensory Decay <span id="lblArpSensoryDecay">5</span>s</label>
                         <input type="range" id="sliderArpSensoryDecay" min="1" max="10" step="1" value="5" style="width: 100%;">
+                    </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-group" style="width: 100%;">
+                        <label>Attraction Strength <span id="lblArpAttraction">70</span>%</label>
+                        <input type="range" id="sliderArpAttraction" min="0" max="100" step="1" value="70" style="width: 100%;">
                     </div>
                 </div>
             </div>
